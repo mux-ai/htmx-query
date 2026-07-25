@@ -62,7 +62,7 @@
     "@playwright/test": "^1.62.0",
     "@size-limit/preset-small-lib": "^12.1.0",
     "esbuild": "^0.28.1",
-    "eslint": "^10.7.0",
+    "eslint": "^10.8.0",
     "htmx.org": "^2.0.10",
     "jsdom": "^29.1.1",
     "nise": "^6.1.5",
