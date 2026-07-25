@@ -1,0 +1,949 @@
+# Structured concept inputs — the single source of truth for the knowledge
+# bundle. Add or edit concepts here, then run:
+#   noli generate --config noli.yaml --apply --format json
+concepts:
+  # ── Architecture decisions ────────────────────────────────────────────
+  - type: Architecture Decision
+    title: Adopt OKF Project Knowledge
+    description: Agent-facing knowledge lives in OKF Markdown documents.
+    sections:
+      - heading: Decision
+        content: >-
+          Project knowledge is authored in .noli/concepts.yaml and rendered
+          into knowledge/ by the Noli CLI. Coding agents retrieve it through
+          noli retrieve instead of reading files directly.
+
+  - type: Architecture Decision
+    title: Cache Rendered HTML Not Data
+    description: >-
+      htmx-query caches server-rendered HTML fragments keyed by request,
+      never JSON data. This is the fundamental difference from React Query.
+    sections:
+      - heading: Decision
+        content: >-
+          The cache stores the exact serverResponse string htmx would swap.
+          Consequences accepted: no cross-view sharing of one entry, no
+          setQueryData-style surgical edits, no offline mutation queue.
+          These are documented as out of scope rather than half-implemented.
+
+  - type: Architecture Decision
+    title: Support htmx 2 Only
+    description: >-
+      The extension targets htmx >=2.0.0 <3 and uses the public htmx.swap
+      and htmx.ajax APIs, which do not exist or differ in htmx 1.x.
+    sections:
+      - heading: Decision
+        content: >-
+          peerDependency is htmx.org >=2.0.0 <3. Cached content is swapped
+          with htmx.swap(target, html, {swapStyle}, {select, contextElement})
+          honoring the element's hx-swap first token (default innerHTML) and
+          hx-select. Retries are reissued with htmx.ajax using the verb, final
+          URL, and target captured before the original response can retarget it.
+
+  - type: Architecture Decision
+    title: Attribute Driven API
+    description: >-
+      Every feature is opt-in through hx-* attributes and communicates
+      through DOM events; no JavaScript calls are required to use the
+      library. Only cache invalidation has an imperative helper.
+    sections:
+      - heading: Decision
+        content: >-
+          Attributes: hx-swr (TTL seconds), hx-swr-key, hx-retry,
+          hx-retry-delay, hx-retry-unsafe, hx-optimistic. Events emitted:
+          hq:invalidated (bubbles from body), hq:retryExhausted (bubbles
+          from the element). JS API: htmx.query.invalidate(prefix),
+          htmx.query.clear(), htmx.query.peek().
+
+  - type: Architecture Decision
+    title: Minimal Toolchain
+    description: >-
+      esbuild for builds (IIFE + ESM + CJS), vitest with happy-dom and
+      sinon fake XHR for tests, size-limit budget 5 kB minified.
+    sections:
+      - heading: Decision
+        content: >-
+          No Babel, no webpack, no TypeScript compile step. Plain ES2018
+          JavaScript. The IIFE build self-registers when window.htmx exists,
+          which is the primary distribution (script tag / CDN).
+
+  - type: Architecture Decision
+    title: Keep Bounded Linear Invalidation
+    description: >-
+      Cache invalidation scans the bounded cache instead of maintaining a
+      prefix trie or secondary route index.
+    sections:
+      - heading: Decision
+        content: >-
+          The cache holds at most 100 entries, making invalidation O(n * k)
+          for n <= 100 and key length k. An index would add write-time and
+          memory overhead, complicate the current substring matching API, and
+          provide no material user-visible benefit at this bound.
+    relationships:
+      - predicate: applies-to
+        to: Cache Store
+
+  - type: Architecture Decision
+    title: Cache Versioned Demo Assets
+    description: >-
+      The local demo may cache versioned JavaScript assets while keeping its
+      HTML and data responses uncached.
+    sections:
+      - heading: Decision
+        content: >-
+          The demo loads htmx and htmx-query through versioned local URLs.
+          Its server gives those JavaScript responses a short public cache
+          lifetime, avoiding repeat downloads during local reloads. Documents
+          and mutation responses remain no-store; public SWR fragments use a
+          matching public max-age so their server contract permits the demo's
+          in-memory freshness window.
+    relationships:
+      - predicate: applies-to
+        to: Publish Human And Agent Documentation
+
+  - type: Architecture Decision
+    title: Namespace In Memory Cache
+    description: >-
+      Applications can switch an explicit cache namespace when their active
+      account, tenant, or data partition changes.
+    sections:
+      - heading: Decision
+        content: >-
+          htmx.query.setNamespace(value) prefixes subsequent cache keys and
+          clears the previous namespace atomically. This retains the existing
+          direct attribute API while making account boundaries safer than a
+          caller remembering to clear a shared cache manually.
+    relationships:
+      - predicate: applies-to
+        to: Cache Store
+
+  - type: Architecture Decision
+    title: Verify In Real Browsers
+    description: >-
+      JSDOM verifies fast unit and integration behavior; Playwright verifies
+      browser-only htmx, CSP, drag, and Clipboard behavior.
+    sections:
+      - heading: Decision
+        content: >-
+          Browser tests start and own an isolated local demo server in Chromium,
+          Firefox, and WebKit for every supported htmx 2.x CI matrix version. They
+          cover only workflows whose semantics depend on a real browser,
+          including conditional ETag revalidation and the empty-304 swap
+          edge case, so the default test suite remains fast and deterministic.
+    relationships:
+      - predicate: applies-to
+        to: Publish Human And Agent Documentation
+
+  - type: Architecture Decision
+    title: Publish Integrity And Provenance Artifacts
+    description: >-
+      Releases publish Subresource Integrity digests for CDN script artifacts and use
+      npm Trusted Publishing when the package owner configures it.
+    sections:
+      - heading: Decision
+        content: >-
+          The build writes SHA-384 integrity files beside both the default unpkg
+          minified IIFE and the readable IIFE. Release verification recalculates
+          each digest from the packed tarball before publication.
+          The GitHub release workflow uses OIDC provenance rather than a
+          long-lived npm token. Enabling the matching trusted publisher at
+          npmjs.com remains an owner-side prerequisite.
+
+  - type: Architecture Decision
+    title: Preserve Bounded Cache Properties
+    description: >-
+      Deterministic randomized tests verify cache capacity, memory, and
+      invalidation invariants across mixed operations.
+    sections:
+      - heading: Decision
+        content: >-
+          A seeded pseudo-random sequence exercises set, get, select, clear,
+          and path invalidation. Assertions retain the 100-entry and 1 MiB
+          bounds, avoiding flaky timing-based fuzzing in CI.
+    relationships:
+      - predicate: applies-to
+        to: Cache Store
+
+  - type: Architecture Decision
+    title: Ship JavaScript With Type Declarations
+    description: >-
+      The runtime remains plain JavaScript while the package publishes a
+      hand-maintained TypeScript declaration for editor and compiler support.
+    sections:
+      - heading: Decision
+        content: >-
+          index.d.ts describes register, the htmx-like registration surface,
+          the public query helpers, cache statistics, and cache lifecycle
+          events. It adds no build step or runtime bytes and keeps TypeScript
+          consumers from needing untyped global access.
+    relationships:
+      - predicate: applies-to
+        to: Extension Router
+
+  - type: Architecture Decision
+    title: Publish Complete Release Metadata
+    description: >-
+      The package includes an MIT license, changelog, and npm repository
+      fields whenever a canonical public repository URL is available.
+    sections:
+      - heading: Decision
+        content: >-
+          A license file and changelog ship in the tarball. Repository,
+          bugs, and homepage fields deliberately remain unset until the
+          maintainer supplies an authoritative public URL; guessing one
+          would create broken release links.
+
+  - type: Architecture Decision
+    title: Server Directives Override Client Freshness
+    description: >-
+      hx-swr supplies a client freshness preference, but HTTP directives that
+      require validation place stricter bounds on reuse.
+    sections:
+      - heading: Decision
+        content: >-
+          no-cache entries always revalidate before reuse and are not rendered
+          from memory first. max-age caps the effective hx-swr freshness TTL.
+          must-revalidate prevents rendering an entry once it is stale. This
+          preserves htmx-query's SWR behavior for ordinary responses without
+          weakening an origin server's explicit validation requirements.
+    relationships:
+      - predicate: applies-to
+        to: SWR Module
+
+  - type: Architecture Decision
+    title: Opt In Header Vary Cache Keys
+    description: >-
+      Responses that vary by request headers are skipped by default; callers
+      may explicitly include approved request headers in their cache key.
+    sections:
+      - heading: Decision
+        content: >-
+          hx-swr-vary names a comma-separated subset of request headers. The
+          extension incorporates their normalized values into the key before
+          storing or serving a response. Cookie and Authorization are rejected
+          even when requested, because account namespaces—not credentials—are
+          the supported isolation mechanism.
+    relationships:
+      - predicate: applies-to
+        to: Cache Key
+
+  - type: Architecture Decision
+    title: Release Through Verified Automation
+    description: >-
+      Publishing is a tag/release-driven GitHub workflow that repeats all
+      quality gates before npm publish with provenance.
+    sections:
+      - heading: Decision
+        content: >-
+          CI checks that CHANGELOG.md contains the package version. A release
+          workflow runs audit, lint, typecheck, tests, browser tests, size
+          limit, packed-file and integrity inspection, and npm publish --provenance. The
+          release tag must equal v plus package.json version; the packed
+          tarball is installed into a clean consumer and imported as ESM and
+          CommonJS before publication.
+
+  - type: Architecture Decision
+    title: Keep Cache Observability Configurable
+    description: >-
+      Cache lifecycle events are useful during diagnosis but can be filtered
+      or disabled by applications with high-frequency cache traffic.
+    sections:
+      - heading: Decision
+        content: >-
+          htmx.query.configure accepts cacheEvents true, false, or a list of
+          lifecycle action names. stats remains available without event
+          dispatch. The default preserves the observable event behavior.
+    relationships:
+      - predicate: applies-to
+        to: Cache Store
+
+  - type: Architecture Decision
+    title: Publish Human And Agent Documentation
+    description: >-
+      A static landing page teaches people how to install and use the library,
+      while root-level llms.txt supplies concise, structured guidance to AI
+      coding agents.
+    sections:
+      - heading: Decision
+        content: >-
+          docs/index.html is dependency-free and suitable for static hosting.
+          It covers CDN and bundler installation, the attribute API, common
+          workflows, safety constraints, and links to the local live demo.
+          The demo links back to the landing page and shares its dark navy,
+          mint, and blue visual system while preserving the executable htmx
+          examples. README links to it. llms.txt is the canonical
+          machine-readable overview; RELEASING.md and docs/production.md cover
+          maintainers and production consumers; llm.txt is a compatibility pointer for
+          tools that use the singular filename. CDN examples pin exact
+          versions; production users must add their own verified SRI hashes.
+    relationships:
+      - predicate: applies-to
+        to: Attribute Driven API
+      - predicate: applies-to
+        to: Extension Router
+
+  # ── Domain entities ───────────────────────────────────────────────────
+  - type: Domain Entity
+    title: Cache Entry
+    description: >-
+      One cached response, stored as raw HTML, a storage timestamp, and
+      lazily-created HTML variants selected by hx-select expressions.
+    sections:
+      - heading: Definition
+        content: >-
+          Entries live in a Map bounded to 100 entries and 1 MiB of raw plus
+          selected HTML, with oldest-insertion eviction. No entry may exceed
+          256 KiB including its retained selector variants. Freshness is derived, never stored:
+          fresh when (now - time)/1000 < the element's hx-swr TTL seconds.
+          A selected variant is parsed once per selector per entry, then
+          reused by cache hits and dedupe waiters. At most 16 selector
+          variants are retained per entry; the oldest is evicted first.
+    relationships:
+      - predicate: depends-on
+        to: Cache Key
+
+  - type: Domain Entity
+    title: Cache Key
+    description: >-
+      Identity of a cache entry, defaulting to "verb:finalRequestPath";
+      an hx-swr-key attribute on the requesting element overrides it.
+    sections:
+      - heading: Definition
+        content: >-
+          Built from evt.detail.requestConfig.verb and
+          evt.detail.pathInfo.finalRequestPath. An explicit hx-swr-key can
+          replace that base. hx-swr-vary may append approved normalized request
+          header values; Cookie and Authorization are forbidden dimensions.
+          Prefix matching against keys is how invalidation selects entries to
+          drop.
+
+  # ── Business rules ────────────────────────────────────────────────────
+  - type: Business Rule
+    title: Opt In Caching Only
+    description: >-
+      Only GET responses of elements carrying hx-swr are cached or deduped.
+      All other traffic passes through untouched.
+    sections:
+      - heading: Rule
+        content: >-
+          Attribute presence is checked on the requesting element directly
+          (no attribute inheritance). Non-GET verbs are never cached.
+    relationships:
+      - predicate: enforced-by
+        to: SWR Module
+
+  - type: Business Rule
+    title: SWR Freshness
+    description: >-
+      Fresh cache hit cancels the request after swapping the cached copy;
+      stale hit swaps the cached copy and lets the request revalidate.
+    sections:
+      - heading: Rule
+        content: >-
+          On htmx:beforeRequest, a cached entry is always swapped in
+          immediately. The request is cancelled only when the entry age is
+          under the hx-swr TTL. A retrying element skips cache serving so a
+          retry can never be short-circuited by the cache it refreshes.
+    relationships:
+      - predicate: enforced-by
+        to: SWR Module
+
+  - type: Business Rule
+    title: Never Cache Errors Or OOB
+    description: >-
+      Error responses, empty bodies, and responses containing hx-swap-oob
+      are never written to the cache.
+    sections:
+      - heading: Rule
+        content: >-
+          Checked on htmx:beforeSwap: evt.detail.isError must be false and
+          serverResponse must be non-empty and free of hx-swap-oob before
+          cache.set runs. OOB fragments update multiple regions, so caching
+          the whole body would replay side effects on cache hits.
+    relationships:
+      - predicate: enforced-by
+        to: SWR Module
+
+  - type: Business Rule
+    title: Honor Response Cache Directives
+    description: >-
+      A response explicitly marked private, no-store, or variant by request
+      headers is never retained by htmx-query, even with hx-swr.
+    sections:
+      - heading: Rule
+        content: >-
+          Successful non-empty GET responses remain cacheable only when their
+          Cache-Control header lacks private and no-store directives, including
+          directive parameters such as private="Set-Cookie". Responses whose
+          Vary header names any dimension other than HX-Request are skipped,
+          because the cache key contains only verb, final URL, and namespace.
+          An ETag on a retained response is saved for conditional revalidation.
+    relationships:
+      - predicate: enforced-by
+        to: SWR Module
+
+  - type: Business Rule
+    title: Server Freshness Constraints
+    description: >-
+      Response cache directives can tighten, but never extend, the freshness
+      requested by hx-swr.
+    sections:
+      - heading: Rule
+        content: >-
+          max-age is the upper bound of hx-swr's effective TTL. no-cache
+          forces validation before every reuse. must-revalidate prevents a
+          stale fragment from rendering until validation succeeds. The stale
+          fragment is eligible for stale-on-error notification only when it
+          was actually rendered before a revalidation attempt.
+    relationships:
+      - predicate: enforced-by
+        to: SWR Module
+
+  - type: Business Rule
+    title: Account For Origin Response Age
+    description: >-
+      Cached freshness includes time already spent in origin or intermediary
+      caches, not only time elapsed in the browser.
+    sections:
+      - heading: Rule
+        content: >-
+          The response Age header and apparent age derived from Date backdate
+          the in-memory timestamp. When Cache-Control max-age is absent,
+          Expires defines the freshness lifetime relative to Date. This can
+          only shorten the client-visible freshness window.
+    relationships:
+      - predicate: enforced-by
+        to: SWR Module
+
+  - type: Business Rule
+    title: Precise Path Invalidation
+    description: >-
+      Applications can select resource-path invalidation to avoid substring
+      collisions while retaining the existing contains behavior by default.
+    sections:
+      - heading: Rule
+        content: >-
+          invalidate(prefix, { mode: 'path' }) matches the cached request path
+          only when it equals the supplied path or continues with slash or
+          query boundaries. This prevents /todos from also invalidating
+          /todos-archive. mode: contains remains the backwards-compatible
+          default.
+    relationships:
+      - predicate: enforced-by
+        to: Cache Store
+
+  - type: Business Rule
+    title: Safe Retry Verbs
+    description: >-
+      Only GET requests are retried by default; non-idempotent verbs
+      require an explicit hx-retry-unsafe attribute.
+    sections:
+      - heading: Rule
+        content: >-
+          Retrying a POST can duplicate a write, so it is never automatic.
+          Aborted requests (htmx:sendAbort) are intentional and never
+          retried regardless of attributes.
+    relationships:
+      - predicate: enforced-by
+        to: Retry Module
+
+  - type: Business Rule
+    title: Hardened Local Demo Boundary
+    description: >-
+      The executable demo is local-only by default and treats all submitted
+      values as text, never as trusted HTML.
+    sections:
+      - heading: Rule
+        content: >-
+          The demo binds to 127.0.0.1 unless a developer explicitly supplies
+          HOST, escapes reflected todo content, caps request bodies, and
+          rejects cross-origin mutations. When a browser omits Origin for a
+          same-origin XHR, the boundary accepts only an explicit
+          Sec-Fetch-Site same-origin signal or a same-origin Referer; absent
+          provenance remains rejected. Its HTML responses carry a
+          nonce-based Content Security Policy and baseline browser hardening
+          headers. The demo serves its installed htmx dependency locally, so
+          its runnable page does not depend on a third-party CDN at runtime.
+    relationships:
+      - predicate: applies-to
+        to: Publish Human And Agent Documentation
+
+  - type: Business Rule
+    title: Retry Backoff
+    description: >-
+      Retry delay is exponential, base * 2^(attempt-1), capped at 10x base
+      and 30 seconds; equal jitter spreads callers over the latter half of
+      the delay. A numeric or HTTP-date Retry-After response header overrides the
+      computed delay before the same cap and jitter.
+    sections:
+      - heading: Rule
+        content: >-
+          Base delay comes from hx-retry-delay (default 1000 ms). Invalid or
+          non-positive values use the default. After
+          min(hx-retry, 10) attempts are exhausted the element dispatches a
+          bubbling hq:retryExhausted event and counters reset. A retry is
+          skipped when the element has left the document. The hard cap avoids
+          accidental unbounded client traffic.
+    relationships:
+      - predicate: enforced-by
+        to: Retry Module
+
+  - type: Business Rule
+    title: Optimistic Revert
+    description: >-
+      The pre-optimistic DOM snapshot is restored before the real response
+      swaps in, and on any request error.
+    sections:
+      - heading: Rule
+        content: >-
+          Each inserted optimistic node is retained in a WeakMap keyed by
+          requester. Revert removes only retained nodes, preserving unrelated
+          DOM changes while the request was pending. The revert is idempotent
+          and removed elements leak nothing.
+    relationships:
+      - predicate: enforced-by
+        to: Optimistic Module
+
+  - type: Business Rule
+    title: Dedupe Waiter Semantics
+    description: >-
+      A duplicate in-flight GET (same cache key, hx-swr element) is
+      cancelled and recorded as a waiter; waiters are served from cache
+      when the winner lands successfully and dropped on failure.
+    sections:
+      - heading: Rule
+        content: >-
+          Waiters removed from the document before landing are skipped.
+          Failure drops waiters silently: their next trigger (polling,
+          invalidation) recovers them. A winner also observes its XHR failure
+          directly, so removal from the document cannot prevent cleanup.
+          Settling is idempotent because the in-flight registry entry is
+          deleted on first settle.
+    relationships:
+      - predicate: enforced-by
+        to: Dedupe Module
+
+  # ── Application components ────────────────────────────────────────────
+  - type: Application Component
+    title: Extension Router
+    description: >-
+      src/index.js — registers the "query" htmx extension; onEvent is a
+      thin switch that routes lifecycle events to feature modules.
+    sections:
+      - heading: Responsibility
+        content: >-
+          Order on htmx:beforeRequest is load-bearing: SWR cache serve
+          first (may cancel), dedupe second (may cancel), optimistic apply
+          last. Returning false from onEvent cancels the request. Modules
+          never call each other directly; they share only the cache store
+          and DOM events. Also exposes register(htmx) for ESM users and
+          self-registers when window.htmx exists.
+    relationships:
+      - predicate: uses
+        to: SWR Module
+      - predicate: uses
+        to: Retry Module
+      - predicate: uses
+        to: Dedupe Module
+      - predicate: uses
+        to: Optimistic Module
+
+  - type: Application Component
+    title: Cache Store
+    description: >-
+      src/cache.js — bounded Map of Cache Entries with prefix invalidation
+      that announces itself via a bubbling hq:invalidated event on body.
+    sections:
+      - heading: Responsibility
+        content: >-
+          get/set/clear/peek/stats plus invalidate(prefix). Eviction removes the
+          oldest insertion once 100 entries exist; setting an existing key
+          refreshes its insertion order. It lazily materializes selected HTML
+          variants and reuses them for repeated selectors. Its snapshot reports
+          entries, retained bytes, hits, misses, stores, evictions, and skipped
+          oversized values without exposing mutable internals. It emits
+          bubbling hq:cache events for hit, miss, store, eviction, skip, and
+          clear operations so applications can observe behavior without
+          reading internal maps. htmx.query.configure can keep all events,
+          disable them, or filter them by action without changing stats.
+    relationships:
+      - predicate: depends-on
+        to: Cache Entry
+
+  - type: Application Component
+    title: SWR Module
+    description: >-
+      src/swr.js — serves cached copies on beforeRequest and stores
+      successful GET responses on beforeSwap.
+    sections:
+      - heading: Responsibility
+        content: >-
+          serveFromCache returns true to signal "cancel the request"
+          (fresh hit). storeResponse writes serverResponse under the
+          element's cache key.
+    relationships:
+      - predicate: uses
+        to: Cache Store
+
+  - type: Application Component
+    title: Retry Module
+    description: >-
+          src/retry.js — schedules htmx.ajax reissues with exponential backoff
+          after responseError, sendError, or timeout.
+    sections:
+      - heading: Responsibility
+        content: >-
+          Tracks attempts and retrying state per element plus verb and final
+          request URL. The original request target is captured before a
+          response can apply HX-Retarget. A scheduled retry bypasses cache
+          serving and deduplication, guaranteeing it receives its configured
+          attempts. reset() clears only the successful request's state.
+    relationships:
+      - predicate: follows
+        to: Support htmx 2 Only
+
+  - type: Application Component
+    title: Dedupe Module
+    description: >-
+      src/dedupe.js — in-flight registry keyed by cache key; cancels
+      duplicate GETs and serves their targets from cache on settle.
+    sections:
+      - heading: Responsibility
+        content: >-
+          shouldCancel registers the first request as winner and later
+          identical ones as waiters. settle(evt, success) runs on
+          afterSwap (success), afterRequest (fallback, covers hx-swap
+          none), and error events (failure path).
+    relationships:
+      - predicate: uses
+        to: Cache Store
+
+  - type: Application Component
+    title: Optimistic Module
+    description: >-
+      src/optimistic.js — inserts an hx-optimistic template into the
+      target on beforeRequest, restores the snapshot on beforeSwap or
+      error.
+    sections:
+      - heading: Responsibility
+        content: >-
+          Template selector comes from the hx-optimistic attribute. Cloned
+          template nodes are appended and retained so only those nodes are
+          removed on error. Scope is deliberately narrow: append + targeted
+          revert, no setQueryData analogue.
+    relationships:
+      - predicate: follows
+        to: Cache Rendered HTML Not Data
+
+  - type: Business Rule
+    title: Honor Stale Response Directives
+    description: >-
+      stale-while-revalidate bounds how long past freshness stale HTML may
+      render; stale-if-error lets rendered stale HTML stand through a failed
+      revalidation without an hq:staleError event.
+    sections:
+      - heading: Rule
+        content: >-
+          Both directives are parsed from the response Cache-Control header and
+          are server-controlled. The stale-while-revalidate window is anchored
+          to ORIGIN freshness (the longer of the client hx-swr TTL and
+          max-age/Expires, per RFC 5861); a shorter client TTL never shrinks
+          the server's grant. Beyond the window the revalidation proceeds
+          without a stale swap (an ETag validator is still attached), and a
+          304 answering a request that rendered no stale HTML swaps the
+          validated cached entry into the target. Within the stale-if-error
+          window a failed revalidation is not an error condition, so no
+          hq:staleError fires. Absent directives preserve unlimited-stale
+          behavior, and a non-numeric hx-swr degrades to 0, never NaN.
+    relationships:
+      - predicate: enforced-by
+        to: SWR Module
+
+  - type: Business Rule
+    title: Observable Invalidation
+    description: >-
+      cache.invalidate returns the removed-entry count and hq:invalidated
+      carries { prefix, mode, count } so server-driven invalidation is
+      debuggable without exposing cache internals.
+    sections:
+      - heading: Rule
+        content: >-
+          The JS API htmx.query.invalidate(prefix, options) forwards mode to
+          the cache. Internal cache reads (dedupe waiter serving, stale-error
+          policy checks) use a silent accessor so hit/miss metrics reflect only
+          request-path lookups.
+    relationships:
+      - predicate: enforced-by
+        to: Cache Store
+
+  # ── Workflows ─────────────────────────────────────────────────────────
+  - type: Workflow
+    title: Serve And Revalidate
+    description: >-
+      GET with hx-swr fires; cached copy swaps in immediately; request is
+      cancelled when fresh, otherwise the response overwrites and recaches.
+    sections:
+      - heading: Steps
+        content: >-
+          1. htmx:beforeRequest → SWR Module swaps cached HTML via
+          htmx.swap. 2. Fresh → extension returns false, request never
+          sent. 3. Stale → request proceeds; htmx:beforeSwap stores the
+          new response; htmx swaps it; htmx:afterSwap settles dedupe
+          waiters. Cached and network swaps apply the same hx-select filter;
+          each cached selector variant is materialized once and then reused.
+    relationships:
+      - predicate: uses
+        to: SWR Module
+
+  - type: Workflow
+    title: Invalidate And Refetch
+    description: >-
+      htmx.query.invalidate(prefix) drops matching entries and fires
+      hq:invalidated; elements listening via hx-trigger refetch, and
+      non-matching listeners short-circuit on their still-fresh cache.
+    sections:
+      - heading: Steps
+        content: >-
+          Server-driven variant: a mutation response carries an HX-Trigger
+          header whose handler calls htmx.query.invalidate. Elements opt
+          into refetch with hx-trigger="load, hq:invalidated from:body".
+    relationships:
+      - predicate: uses
+        to: Cache Store
+
+  - type: Workflow
+    title: Conditionally Revalidate Cached HTML
+    description: >-
+      A stale response with an ETag is rendered immediately and revalidated
+      with If-None-Match; a 304 refreshes freshness without retransferring or
+      reparsing HTML.
+    sections:
+      - heading: Steps
+        content: >-
+          1. SWR finds a stale entry and sets If-None-Match before htmx sends
+          the XHR. 2. A 200 replaces HTML and ETag normally. 3. A 304 keeps
+          the existing HTML, refreshes its timestamp, and settles dedupe
+          waiters from that retained entry.
+    relationships:
+      - predicate: uses
+        to: SWR Module
+      - predicate: uses
+        to: Dedupe Module
+
+  - type: Workflow
+    title: Report Stale Revalidation Failure
+    description: >-
+      When a stale fragment has rendered and its background revalidation
+      fails, applications receive a single event without losing the fragment.
+    sections:
+      - heading: Steps
+        content: >-
+          1. SWR records that a stale cache entry was swapped. 2. htmx reports
+          a response, transport, or timeout error. 3. The extension emits a
+          bubbling hq:staleError event containing the cache key and status,
+          then clears the per-request marker. Retry behavior remains unchanged.
+    relationships:
+      - predicate: uses
+        to: SWR Module
+
+  - type: Workflow
+    title: Verify A Release Artifact
+    description: >-
+      A release must have a matching version tag and an installable packed
+      artifact before provenance publishing.
+    sections:
+      - heading: Steps
+        content: >-
+          1. Verify the GitHub release tag is v plus package.json version.
+          2. Build and pack the package. 3. Install the tarball into a clean
+          temporary consumer and import both ESM and CommonJS entry points.
+          4. Publish only after these checks and the normal release gate pass.
+    relationships:
+      - predicate: follows
+        to: Release Through Verified Automation
+
+  - type: Workflow
+    title: Invalidate From Server Response
+    description: >-
+      A successful htmx response can declare cache paths to invalidate without
+      page-specific JavaScript.
+    sections:
+      - heading: Steps
+        content: >-
+          1. The server sends HX-Cache-Invalidate JSON with a path and optional
+          path/contains mode. 2. After a successful request, the extension
+          parses the trusted same-origin response header. 3. It invokes cache
+          invalidation, which emits hq:invalidated and refetches listeners.
+    relationships:
+      - predicate: uses
+        to: Cache Store
+
+  - type: Architecture Decision
+    title: Keep Cache Prefetch Explicit And Non-Rendering
+    description: >-
+      Prefetch is an optional cache warm-up, never an implicit navigation
+      behavior or a source-element swap.
+    sections:
+      - heading: Decision
+        content: >-
+          hx-swr-prefetch is a token list ("hover", "focus", or both) accepted
+          only with hx-swr on a same-origin GET. hover covers pointer users and
+          focus covers keyboard users for accessibility parity. One best-effort
+          request is issued per source element; it stores a cacheable response
+          but suppresses the htmx swap. Prefetch is skipped when the browser
+          Save-Data preference is enabled, and hq:prefetch communicates skip,
+          success, and error outcomes.
+    relationships:
+      - predicate: applies-to
+        to: SWR Module
+      - predicate: uses
+        to: Cache Store
+
+  - type: Architecture Decision
+    title: Automate Dependency And Code Security Review
+    description: >-
+      Hosted automation supplements local audit checks with dependency update
+      proposals and static security analysis.
+    sections:
+      - heading: Decision
+        content: >-
+          Dependabot checks npm and GitHub Actions dependencies weekly. CodeQL
+          analyzes JavaScript on pushes, pull requests, and a weekly schedule.
+          These workflows report findings without changing library runtime
+          behavior or adding production dependencies.
+    relationships:
+      - predicate: applies-to
+        to: Release Through Verified Automation
+
+  - type: Architecture Decision
+    title: Pin Security Workflow Actions
+    description: >-
+      Security workflows use immutable action revisions so a moving tag cannot
+      silently change the analysis code executed by CI.
+    sections:
+      - heading: Decision
+        content: >-
+          CodeQL actions are pinned to reviewed commit SHAs and Dependabot
+          tracks their updates. The workflow keeps JavaScript analysis on push,
+          pull request, and weekly schedule triggers.
+    relationships:
+      - predicate: applies-to
+        to: Automate Dependency And Code Security Review
+
+  - type: Business Rule
+    title: Parse Cache Headers Defensively
+    description: >-
+      HTTP cache policy parsing must tolerate quoted values, malformed numeric
+      directives, and wildcard Vary without accidentally widening reuse.
+    sections:
+      - heading: Rule
+        content: >-
+          Cache-Control directives are tokenized without splitting commas inside
+          quotes. Invalid ages are ignored, while Vary: * and unknown request
+          dimensions disable storage. Existing no-store, private, and validation
+          requirements remain authoritative.
+    relationships:
+      - predicate: enforced-by
+        to: SWR Module
+
+  - type: Architecture Decision
+    title: Verify Public API Compatibility
+    description: >-
+      The small public API is protected by declaration checks and a consumer
+      contract test so refactors do not silently break CDN, ESM, CJS, or
+      TypeScript users.
+    sections:
+      - heading: Decision
+        content: >-
+          Each release verifies register, invalidate options and return value,
+          namespace, stats, cache events, invalidation details, and prefetch
+          event details. Semver changes must update README, llms.txt, and the
+          declaration file together.
+    relationships:
+      - predicate: applies-to
+        to: Extension Router
+
+  - type: Architecture Decision
+    title: Expose Bounded Diagnostic Metrics
+    description: >-
+      Applications can inspect cache efficiency and stale failures without
+      receiving mutable cache internals.
+    sections:
+      - heading: Decision
+        content: >-
+          stats reports cache hitRate and staleErrors. debug returns stats plus
+          a copy of cache keys, and resetMetrics clears counters while retaining
+          entries. These helpers remain read-only diagnostics and add no network
+          or persistence behavior.
+    relationships:
+      - predicate: applies-to
+        to: Cache Store
+
+  - type: Workflow
+    title: Benchmark Bounded Request Paths
+    description: >-
+      Performance checks exercise the hot paths introduced by cache invalidation
+      and optional prefetch without imposing machine-specific strict limits.
+    sections:
+      - heading: Steps
+        content: >-
+          1. Populate 100 bounded entries and measure server-style invalidation.
+          2. Reuse one prefetched cache entry for 1,000 hits. 3. Compare median
+          timings with conservative CI guardrails while retaining the 5 kB bundle
+          budget.
+    relationships:
+      - predicate: uses
+        to: Cache Store
+
+  - type: Workflow
+    title: Retry With Backoff
+    description: >-
+      Failed eligible request schedules a delayed htmx.ajax reissue;
+      success resets counters, exhaustion fires hq:retryExhausted.
+    sections:
+      - heading: Steps
+        content: >-
+          1. Error event → Safe Retry Verbs check → attempt counter
+          increments for that verb and final URL. 2. setTimeout(base *
+          2^(n-1), cap 10x) → element still in document → htmx.ajax with
+          the original source and target. 3. The retrying flag suppresses
+          cache serving and deduplication for the reissue.
+    relationships:
+      - predicate: uses
+        to: Retry Module
+
+  - type: Workflow
+    title: Persist Drag Reorder
+    description: >-
+      A native drag-and-drop interaction reorders task rows immediately,
+      persists the resulting ordered IDs through htmx, and reconciles cached
+      task lists after the server accepts the mutation.
+    sections:
+      - heading: Steps
+        content: >-
+          1. The drag script captures the prior order and moves the row in the
+          DOM for immediate feedback. 2. It serializes the task IDs into an
+          hx-post form. 3. A successful response invalidates the task-list
+          cache, causing hx-trigger listeners to refetch. 4. A failed response
+          restores the captured DOM order. The mutation is not retried by
+          default because reorders are non-GET writes.
+      - heading: Accessibility
+        content: >-
+          Native HTML drag events demonstrate the request integration but are
+          not a complete keyboard or touch interaction. The demo also exposes
+          move-up and move-down buttons for verifiable keyboard/click fallback;
+          a polite live status announces move position and save/restore state.
+          Production interfaces may still prefer an accessible drag-and-drop
+          library for richer touch behavior.
+      - heading: Code disclosure
+        content: >-
+          The demo keeps an instructional code card beside the runnable
+          interaction. It shows the task-list markup and reorder handler with
+          local syntax coloring, and its Copy button uses the Clipboard API
+          with an in-page fallback plus an aria-live confirmation. This keeps
+          the runnable and instructional surfaces dependency-free.
+    relationships:
+      - predicate: uses
+        to: Cache Store
+      - predicate: follows
+        to: Attribute Driven API

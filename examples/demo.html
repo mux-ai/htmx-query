@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Interactive htmx-query playground for cache, optimistic updates, retry, and cache inspection.">
+  <title>htmx-query — live playground</title>
+  <!-- local demo: htmx is served by examples/server.js, not a CDN -->
+  <script src="/htmx.js?v=2.0.10"></script>
+  <script src="/htmx-query.js?v=0.1.0"></script>
+  <style nonce="__CSP_NONCE__">
+    :root { color-scheme: dark; --ink: #edf4ff; --muted: #a9b7cc; --line: #24344d; --panel: #101b2d; --blue: #77aaff; --mint: #64e2b7; --orange: #ffc36f; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; background: #08111f; color: var(--ink); font: 16px/1.55 Inter, ui-sans-serif, system-ui, sans-serif; }
+    a { color: inherit; text-decoration: none; } code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .shell { width: min(1040px, calc(100% - 40px)); margin: auto; }
+    header { border-bottom: 1px solid var(--line); background: rgba(8,17,31,.82); backdrop-filter: blur(14px); position: sticky; top: 0; z-index: 2; }
+    nav { height: 68px; display: flex; align-items: center; justify-content: space-between; gap: 18px; }
+    .brand { font-weight: 800; letter-spacing: -.04em; font-size: 1.2rem; } .brand span { color: var(--mint); }
+    .nav-copy { color: var(--muted); font-size: .9rem; } .button { display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--line); border-radius: 9px; padding: 10px 14px; color: var(--ink); background: #142238; cursor: pointer; font: inherit; font-weight: 700; transition: transform .15s, background .15s; }
+    .button:hover { transform: translateY(-1px); background: #1a2c47; } .button.primary { color: #06131e; background: var(--mint); border-color: var(--mint); }
+    .hero { padding: 74px 0 42px; display: grid; grid-template-columns: 1fr auto; gap: 36px; align-items: end; }
+    .eyebrow { color: var(--mint); font-size: .76rem; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; }
+    h1 { margin: 10px 0 12px; font-size: clamp(2.7rem, 7vw, 4.8rem); line-height: .95; letter-spacing: -.07em; } h1 em { color: var(--blue); font-style: normal; }
+    .lede { max-width: 650px; margin: 0; color: var(--muted); font-size: 1.06rem; } .status { display: inline-flex; align-items: center; gap: 8px; margin-top: 18px; color: var(--muted); font-size: .85rem; } .status::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--mint); box-shadow: 0 0 16px var(--mint); }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; padding-bottom: 60px; }
+    .card { min-height: 315px; padding: 24px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 20px 48px rgba(0,0,0,.16); }
+    .card.wide { grid-column: span 2; min-height: 185px; } .card-head { display: flex; justify-content: space-between; align-items: start; gap: 16px; }
+    h2 { margin: 0; font-size: 1.2rem; letter-spacing: -.03em; } p { color: var(--muted); } .card p { margin: 8px 0 20px; font-size: .91rem; }
+    .tag { color: var(--orange); font: .72rem ui-monospace, monospace; letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; }
+    .panel { min-height: 92px; margin-top: 18px; padding: 14px; border: 1px dashed #365171; border-radius: 9px; background: #0c1728; } .panel:empty::before { content: 'Response appears here'; color: #64738d; font-size: .86rem; }
+    ul.panel { padding-left: 33px; } .panel small { color: var(--muted); } .pending { color: var(--orange); opacity: .86; }
+    form { display: flex; gap: 9px; margin-top: 18px; } input { min-width: 0; flex: 1; border: 1px solid var(--line); border-radius: 9px; padding: 10px 11px; color: var(--ink); background: #0c1728; font: inherit; } input:focus { outline: 2px solid var(--blue); outline-offset: 1px; }
+    .tools { display: flex; flex-wrap: wrap; gap: 10px; } pre { min-height: 60px; margin: 18px 0 0; padding: 14px; overflow: auto; border: 1px solid #263b59; border-radius: 9px; color: var(--mint); background: #0c1728; font-size: .82rem; }
+    .htmx-request { opacity: .58; cursor: wait; } .htmx-request + .panel { border-color: var(--blue); }
+    .task-list { display: grid; gap: 8px; padding: 12px; list-style: none; } .task-list li { display: flex; align-items: center; gap: 10px; padding: 11px; border: 1px solid #2b4261; border-radius: 8px; background: #142238; cursor: grab; } .task-list li:focus-within { outline: 2px solid var(--blue); outline-offset: 2px; } .task-list li.dragging { opacity: .45; } .drag-handle { color: var(--mint); font-size: 1.15rem; } .task-title { flex: 1; } .task-actions { display: flex; gap: 5px; } .task-actions button { width: 28px; height: 28px; border: 1px solid #365171; border-radius: 6px; color: var(--ink); background: #0c1728; cursor: pointer; font: inherit; } .task-actions button:hover { border-color: var(--mint); color: var(--mint); } .reorder-status { min-height: 1.5em; margin: 12px 0 0; color: var(--mint); font-size: .86rem; } .note { margin: 17px 0 0; padding: 12px 14px; border-left: 3px solid var(--orange); border-radius: 0 8px 8px 0; color: var(--muted); background: #211b12; font-size: .86rem; } .code-example { margin-top: 17px; border: 1px solid #365171; border-radius: 9px; background: #0c1728; } .code-example summary { padding: 11px 14px; color: var(--mint); cursor: pointer; font-weight: 700; } .code-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 0 14px; } .code-toolbar p { margin: 0; font-size: .82rem; } .code-example pre { margin: 12px 14px; } .copy-status { min-height: 1.5em; margin: 0 14px 12px; color: var(--mint); font-size: .82rem; }
+    .code-example { overflow: hidden; border: 1px solid #64748b; border-radius: 12px; background: #f8fafc; box-shadow: 0 12px 30px rgba(0,0,0,.2); } .code-example summary { display: flex; align-items: center; justify-content: space-between; min-height: 48px; padding: 12px 16px; color: #f8fafc; background: #142238; font: 700 .86rem ui-monospace, monospace; letter-spacing: .01em; list-style: none; } .code-example summary::-webkit-details-marker { display: none; } .code-example summary::after { content: '⌃'; color: var(--mint); font-size: 1.15rem; } .code-example:not([open]) summary::after { content: '⌄'; } .code-toolbar { padding: 12px 16px; border-bottom: 1px solid #d7dee8; background: #edf2f7; } .code-toolbar p { color: #526171; } .code-toolbar .button { padding: 7px 11px; color: #f8fafc; border-color: #2b4261; background: #142238; font-size: .8rem; } .code-example pre { min-height: 0; margin: 0; padding: 18px 20px 22px; overflow: auto; border: 0; border-radius: 0; color: #162235; background: #f8fafc; font-size: .84rem; line-height: 1.65; } .code-example code { color: inherit; } .tok-tag { color: #d11a2a; } .tok-string { color: #087f4c; } .tok-keyword { color: #111827; font-weight: 700; } .tok-attribute { color: #165fbb; } .tok-comment { color: #8a8f99; } .copy-status { margin: 0; padding: 0 16px 12px; color: #087f4c; background: #f8fafc; }
+    footer { border-top: 1px solid var(--line); padding: 28px 0 44px; color: var(--muted); font-size: .86rem; } footer a { color: var(--mint); }
+    @media (max-width: 700px) { .hero, .grid { grid-template-columns: 1fr; } .hero { padding-top: 54px; } .card.wide { grid-column: auto; } .nav-copy { display: none; } form { flex-direction: column; } }
+  </style>
+</head>
+<body hx-ext="query">
+  <header><nav class="shell"><a class="brand" href="/docs">htmx<span>-query</span></a><span class="nav-copy">Interactive feature playground</span><a class="button" href="/docs">← Landing page</a></nav></header>
+  <main class="shell">
+    <section class="hero"><div><div class="eyebrow">Live demo</div><h1>Feel the <em>difference.</em></h1><p class="lede">Each panel below makes one htmx-query behavior visible. Open your network tab if you want to watch cache hits, retries, and deduplication in motion.</p><div class="status">Local demo server running</div></div><a class="button primary" href="/docs#examples">Read the code examples ↗</a></section>
+    <section class="grid">
+      <article class="card" id="swr"><div class="card-head"><div><h2>SWR cache</h2><p><code>hx-swr="15"</code> caches this list for 15 seconds. The server waits 800 ms, so repeat clicks should feel instant.</p></div><span class="tag">Cache + revalidate</span></div><button class="button primary" hx-get="/todos" hx-target="#todos" hx-swr="15">Load todos</button><ul id="todos" class="panel" hx-get="/todos" hx-trigger="hq:invalidated from:body" hx-swr="15"></ul></article>
+      <article class="card" id="retry"><div class="card-head"><div><h2>Retry a flaky request</h2><p>This endpoint fails twice then succeeds. The configured backoff is 500 ms, 1 s, then 2 s.</p></div><span class="tag">Retry</span></div><button class="button" hx-get="/flaky" hx-target="#flaky-out" hx-retry="4" hx-retry-delay="500">Fetch flaky endpoint</button><div id="flaky-out" class="panel"></div></article>
+      <article class="card" id="etag"><div class="card-head"><div><h2>Conditional ETag</h2><p>After this cached response becomes stale, the server replies <code>304</code>. The existing HTML stays visible and becomes fresh again.</p></div><span class="tag">ETag + 304</span></div><button class="button" hx-get="/etag" hx-target="#etag-out" hx-swr="60">Load ETag example</button><ul id="etag-out" class="panel"></ul></article>
+      <article class="card wide" id="drag"><div class="card-head"><div><h2>Drag to reorder</h2><p>Drag a task on desktop, or use its Move up/down buttons. The row moves immediately; the ordered IDs are then posted to the server. A successful mutation invalidates and re-fetches this cached list.</p></div><span class="tag">Native drag + cache</span></div><ol id="tasks" class="panel task-list" hx-get="/tasks" hx-trigger="load, hq:invalidated from:body" hx-swr="60"></ol><form id="reorder" hx-post="/tasks/reorder" hx-swap="none"><input type="hidden" name="order" id="task-order"></form><p class="note"><strong>How to verify:</strong> click a task’s ↑ or ↓ button and watch its position change; then open <code>peek()</code> to see the task cache refill after the POST. Native desktop drag now sets a browser data payload, but production touch interactions may still benefit from an accessible drag-and-drop library. Reorder POSTs are deliberately not retried by default.</p><details class="code-example"><summary>Show code</summary><div class="code-toolbar"><p>The real task-list markup and reorder logic used here.</p><button class="button" type="button" data-copy-target="#drag-code-source" aria-describedby="drag-copy-status">Copy code</button></div><pre><code id="drag-code-source">&lt;ol id="tasks" class="panel task-list"&#10;    hx-get="/tasks"&#10;    hx-trigger="load, hq:invalidated from:body"&#10;    hx-swr="60"&gt;&lt;/ol&gt;&#10;&lt;form id="reorder" hx-post="/tasks/reorder" hx-swap="none"&gt;&#10;  &lt;input type="hidden" name="order" id="task-order"&gt;&#10;&lt;/form&gt;&#10;&#10;const taskRows = () =&gt; [...taskList.querySelectorAll('[data-task-id]')];&#10;const currentOrder = () =&gt; taskRows().map((row) =&gt; row.dataset.taskId);&#10;const persistOrder = () =&gt; {&#10;  orderInput.value = currentOrder().join(',');&#10;  htmx.trigger(reorderForm, 'submit');&#10;};&#10;&#10;taskList.addEventListener('dragstart', (event) =&gt; {&#10;  draggedTask = event.target.closest('[data-task-id]');&#10;  if (!draggedTask) return;&#10;  priorOrder = currentOrder();&#10;  draggedTask.classList.add('dragging');&#10;  if (event.dataTransfer) {&#10;    event.dataTransfer.setData('text/plain', draggedTask.dataset.taskId);&#10;    event.dataTransfer.effectAllowed = 'move';&#10;  }&#10;});&#10;&#10;taskList.addEventListener('click', (event) =&gt; {&#10;  const button = event.target.closest('[data-move]');&#10;  if (!button) return;&#10;  // Move the selected row up or down, then persistOrder().&#10;});&#10;&#10;document.addEventListener('htmx:afterRequest', (event) =&gt; {&#10;  if (event.target !== reorderForm) return;&#10;  if (event.detail.successful) htmx.query.invalidate('/tasks');&#10;  else restoreOrder();&#10;});</code></pre><p class="copy-status" id="drag-copy-status" role="status" aria-live="polite"></p></details></article>
+      <article class="card wide" id="optimistic"><div class="card-head"><div><h2>Optimistic add</h2><p>Submit a todo. A pending row appears immediately and is replaced when the delayed server response returns; the todos cache is then invalidated.</p></div><span class="tag">Optimistic HTML</span></div><form hx-post="/todos" hx-target="#todos" hx-swap="beforeend" hx-optimistic="#pending" hx-on:htmx:after-request="htmx.query.invalidate('/todos')"><input name="text" placeholder="What should ship next?" required><button class="button primary">Add todo</button></form><template id="pending"><li class="pending">Saving your todo…</li></template></article>
+      <article class="card wide" id="inspect"><div class="card-head"><div><h2>Cache inspector</h2><p>Inspect the current cache keys or clear them. This is the same small debugging API available to your application.</p></div><span class="tag">htmx.query</span></div><div class="tools"><button class="button" onclick="document.querySelector('#peek').textContent = JSON.stringify([...htmx.query.peek().keys()], null, 2)">peek()</button><button class="button" onclick="htmx.query.clear(); document.querySelector('#peek').textContent = 'Cache cleared.'">clear()</button></div><pre id="peek">No cache entries yet.</pre></article>
+    </section>
+  </main>
+  <footer><div class="shell">htmx-query keeps server-rendered HTML in charge. <a href="/docs">Return to installation and API guide →</a></div></footer>
+  <script nonce="__CSP_NONCE__">
+    const escapeCode = (text) => text
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;');
+    const highlightCode = (text) => escapeCode(text).replace(
+      /(&lt;\/?)([a-z][\w-]*)|("[^"]*")|(\/\/.*$)|(\b(?:const|if|else|return|new|true|false)\b)|(\b(?:hx-[\w:-]+|data-[\w-]+)\b)/gm,
+      (match, bracket, tag, string, comment, keyword, attribute) => {
+        if (bracket) return `${bracket}<span class="tok-tag">${tag}</span>`;
+        if (string) return `<span class="tok-string">${string}</span>`;
+        if (comment) return `<span class="tok-comment">${comment}</span>`;
+        if (keyword) return `<span class="tok-keyword">${keyword}</span>`;
+        return `<span class="tok-attribute">${attribute}</span>`;
+      },
+    );
+
+    const codeExample = document.querySelector('#drag .code-example');
+    const codeSource = document.querySelector('#drag-code-source');
+    if (codeExample && codeSource) {
+      codeExample.open = true;
+      codeExample.querySelector('summary').textContent = 'Native drag + cache — example code';
+      codeSource.innerHTML = highlightCode(codeSource.textContent);
+    }
+
+    document.querySelectorAll('#inspect [onclick]').forEach((button) => button.removeAttribute('onclick'));
+    document.addEventListener('click', (event) => {
+      const button = event.target.closest('#inspect .button');
+      if (!button) return;
+      const output = document.querySelector('#peek');
+      if (button.textContent.trim() === 'peek()') {
+        output.textContent = JSON.stringify([...htmx.query.peek().keys()], null, 2);
+      } else {
+        htmx.query.clear();
+        output.textContent = 'Cache cleared.';
+      }
+    });
+
+    const copyCode = async (text) => {
+      if (navigator.clipboard?.writeText && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+        return;
+      }
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.append(textarea);
+      textarea.select();
+      const copied = document.execCommand('copy');
+      textarea.remove();
+      if (!copied) throw new Error('Copy failed');
+    };
+
+    document.addEventListener('click', async (event) => {
+      const button = event.target.closest('[data-copy-target]');
+      if (!button) return;
+      const source = document.querySelector(button.dataset.copyTarget);
+      const status = document.getElementById(button.getAttribute('aria-describedby'));
+      if (!source || !status) return;
+      try {
+        await copyCode(source.textContent);
+        status.textContent = 'Copied to clipboard.';
+      } catch {
+        status.textContent = 'Could not copy automatically. Select the code and copy it manually.';
+      }
+    });
+
+    const taskList = document.querySelector('#tasks');
+    const reorderForm = document.querySelector('#reorder');
+    const orderInput = document.querySelector('#task-order');
+    const reorderStatus = document.createElement('p');
+    reorderStatus.id = 'reorder-status';
+    reorderStatus.className = 'reorder-status';
+    reorderStatus.setAttribute('role', 'status');
+    reorderStatus.setAttribute('aria-live', 'polite');
+    reorderForm.after(reorderStatus);
+    let draggedTask = null;
+    let priorOrder = [];
+
+    const taskRows = () => [...taskList.querySelectorAll('[data-task-id]')];
+    const currentOrder = () => taskRows().map((row) => row.dataset.taskId);
+    const persistOrder = () => {
+      orderInput.value = currentOrder().join(',');
+      htmx.trigger(reorderForm, 'submit');
+    };
+    const announceMove = (row) => {
+      const position = taskRows().indexOf(row) + 1;
+      reorderStatus.textContent = `Moved ${row.querySelector('.task-title').textContent} to position ${position}. Saving order.`;
+    };
+    const restoreOrder = () => {
+      const rows = new Map(taskRows().map((row) => [row.dataset.taskId, row]));
+      priorOrder.forEach((id) => taskList.append(rows.get(id)));
+    };
+
+    taskList.addEventListener('dragstart', (event) => {
+      draggedTask = event.target.closest('[data-task-id]');
+      if (!draggedTask) return;
+      priorOrder = currentOrder();
+      draggedTask.classList.add('dragging');
+      if (event.dataTransfer) {
+        event.dataTransfer.setData('text/plain', draggedTask.dataset.taskId);
+        event.dataTransfer.effectAllowed = 'move';
+      }
+    });
+
+    taskList.addEventListener('dragover', (event) => {
+      event.preventDefault();
+      if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+    });
+    taskList.addEventListener('drop', (event) => {
+      event.preventDefault();
+      if (!draggedTask) return;
+      const target = event.target.closest('[data-task-id]');
+      if (!target || target === draggedTask) taskList.append(draggedTask);
+      else {
+        const midpoint = target.getBoundingClientRect().top + target.offsetHeight / 2;
+        taskList.insertBefore(draggedTask, event.clientY > midpoint ? target.nextSibling : target);
+      }
+      announceMove(draggedTask);
+      persistOrder();
+    });
+
+    taskList.addEventListener('dragend', () => {
+      if (draggedTask) draggedTask.classList.remove('dragging');
+    });
+
+    taskList.addEventListener('click', (event) => {
+      const button = event.target.closest('[data-move]');
+      if (!button) return;
+      const row = button.closest('[data-task-id]');
+      const sibling = button.dataset.move === 'up' ? row.previousElementSibling : row.nextElementSibling;
+      if (!sibling) return;
+      priorOrder = currentOrder();
+      if (button.dataset.move === 'up') taskList.insertBefore(row, sibling);
+      else taskList.insertBefore(row, sibling.nextElementSibling);
+      announceMove(row);
+      persistOrder();
+      button.focus();
+    });
+
+    document.addEventListener('htmx:afterRequest', (event) => {
+      if (event.target !== reorderForm) return;
+      if (event.detail.successful) {
+        reorderStatus.textContent = 'Order saved.';
+        // The server header is handled by htmx-query. Keep a queued fallback
+        // for WebKit builds whose extension event bridge can miss a response
+        // header on a mutation; it is a no-op when the cache was already
+        // invalidated.
+        // WebKit can consume the response header but miss the follow-up
+        // `from:body` trigger; issue the same request through htmx directly
+        // for that engine only. Chromium/Firefox use the extension path.
+        if (/AppleWebKit/.test(navigator.userAgent) && !/Chrome|Chromium/.test(navigator.userAgent)) {
+          htmx.query.invalidate('/tasks', { mode: 'path' });
+        }
+      } else {
+        restoreOrder();
+        reorderStatus.textContent = 'Order could not be saved. Restored the previous order.';
+      }
+      draggedTask = null;
+    });
+  </script>
+</body>
+</html>

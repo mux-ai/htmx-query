@@ -1,0 +1,26 @@
+name: lockfile-review
+
+on:
+  pull_request:
+    paths:
+      - package.json
+      - pnpm-lock.yaml
+
+permissions:
+  contents: read
+
+jobs:
+  lockfile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with: { fetch-depth: 0 }
+      - name: Require manifest context for lockfile changes
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          changed="$(git diff --name-only "origin/${BASE_REF}...HEAD")"
+          if printf '%s\n' "$changed" | grep -qx 'pnpm-lock.yaml' && ! printf '%s\n' "$changed" | grep -qx 'package.json'; then
+            echo 'pnpm-lock.yaml changed without package.json; review the dependency change.' >&2
+            exit 1
+          fi

@@ -1,0 +1,14 @@
+node_modules/
+dist/
+playwright-report/
+test-results/
+coverage/
+.env
+.env.*
+!.env.example
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+*.tgz
+.DS_Store
+.noli/write.lock

@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="htmx-query adds cache, stale-while-revalidate, retry, dedupe, and optimistic updates to htmx 2 with HTML attributes.">
+  <title>htmx-query — useful server HTML, instantly</title>
+  <style nonce="__CSP_NONCE__">
+    :root { color-scheme: dark; --ink: #edf4ff; --muted: #a9b7cc; --line: #24344d; --panel: #101b2d; --blue: #77aaff; --mint: #64e2b7; --orange: #ffc36f; }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; background: #08111f; color: var(--ink); font: 16px/1.55 Inter, ui-sans-serif, system-ui, sans-serif; }
+    a { color: inherit; text-decoration: none; }
+    code { font: .9em/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .shell { width: min(1120px, calc(100% - 40px)); margin: auto; }
+    header { border-bottom: 1px solid var(--line); background: rgba(8,17,31,.82); backdrop-filter: blur(14px); position: sticky; top: 0; z-index: 2; }
+    nav { height: 68px; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+    .brand { font-weight: 800; letter-spacing: -.04em; font-size: 1.2rem; }
+    .brand span { color: var(--mint); }
+    .links { display: flex; gap: 22px; color: var(--muted); font-size: .92rem; }
+    .links a:hover { color: var(--ink); }
+    .hero { padding: 112px 0 76px; display: grid; grid-template-columns: 1.1fr .9fr; gap: 56px; align-items: center; }
+    .eyebrow { color: var(--mint); font-size: .76rem; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; }
+    h1 { max-width: 710px; margin: 14px 0 20px; font-size: clamp(3rem, 7vw, 5.7rem); line-height: .94; letter-spacing: -.075em; }
+    h1 em { color: var(--blue); font-style: normal; }
+    .lede { max-width: 610px; font-size: 1.16rem; color: var(--muted); }
+    .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 30px; }
+    .button { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: 9px; padding: 11px 15px; font-weight: 700; }
+    .button.primary { color: #06131e; background: var(--mint); border-color: var(--mint); }
+    .button:hover { transform: translateY(-1px); }
+    .terminal, .code { overflow: auto; border: 1px solid var(--line); border-radius: 14px; background: #0d192a; box-shadow: 0 22px 60px rgba(0,0,0,.22); }
+    .terminal-head { padding: 12px 16px; border-bottom: 1px solid var(--line); color: var(--muted); font-size: .8rem; }
+    pre { margin: 0; padding: 20px; white-space: pre-wrap; font-size: .84rem; line-height: 1.7; }
+    .green { color: var(--mint); } .blue { color: var(--blue); } .orange { color: var(--orange); } .dim { color: var(--muted); }
+    .proof { padding: 22px 0 72px; display: grid; grid-template-columns: repeat(4, 1fr); border-bottom: 1px solid var(--line); }
+    .proof div { padding: 0 24px; border-left: 1px solid var(--line); } .proof div:first-child { border: 0; padding-left: 0; }
+    .proof strong { display: block; font-size: 1.65rem; letter-spacing: -.06em; } .proof span { color: var(--muted); font-size: .88rem; }
+    section { padding: 88px 0; border-bottom: 1px solid var(--line); }
+    h2 { margin: 0 0 16px; font-size: clamp(2rem, 4vw, 3.2rem); letter-spacing: -.06em; line-height: 1; }
+    .section-intro { max-width: 690px; color: var(--muted); font-size: 1.05rem; }
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 38px; }
+    .card { min-height: 184px; padding: 22px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; }
+    .icon { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 8px; color: var(--mint); background: #17383a; font-weight: 800; }
+    h3 { margin: 18px 0 7px; font-size: 1rem; } .card p { margin: 0; color: var(--muted); font-size: .91rem; }
+    .install { display: grid; grid-template-columns: .85fr 1.15fr; gap: 34px; margin-top: 34px; align-items: start; }
+    .steps { margin: 0; padding: 0; list-style: none; counter-reset: step; }
+    .steps li { position: relative; padding: 0 0 22px 48px; color: var(--muted); }
+    .steps li::before { counter-increment: step; content: counter(step); position: absolute; left: 0; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; color: var(--mint); background: #17383a; font-size: .8rem; font-weight: 800; }
+    .steps strong { display: block; color: var(--ink); }
+    .example { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 42px; }
+    .example-copy { padding: 12px 8px; } .example-copy p { color: var(--muted); }
+    .tag { color: var(--orange); font: .76rem ui-monospace, monospace; text-transform: uppercase; letter-spacing: .08em; }
+    table { width: 100%; margin-top: 34px; border-collapse: collapse; font-size: .9rem; }
+    th, td { padding: 15px 12px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; } th { color: var(--muted); font-size: .75rem; letter-spacing: .08em; text-transform: uppercase; }
+    td:nth-child(1) { color: var(--mint); font-family: ui-monospace, monospace; white-space: nowrap; }
+    .note { margin-top: 30px; padding: 18px 20px; border-left: 3px solid var(--orange); color: var(--muted); background: #211b12; }
+    .agent { background: linear-gradient(135deg, #101b2d, #17243a); border-radius: 16px; padding: 34px; display: flex; justify-content: space-between; gap: 30px; align-items: center; }
+    .agent p { max-width: 610px; color: var(--muted); margin-bottom: 0; }
+    footer { padding: 34px 0 50px; display: flex; justify-content: space-between; color: var(--muted); font-size: .85rem; }
+    @media (max-width: 760px) { .links { display: none; } .hero, .install, .example { grid-template-columns: 1fr; gap: 30px; } .hero { padding-top: 78px; } .proof, .grid { grid-template-columns: 1fr 1fr; } .proof div:nth-child(3) { border-left: 0; padding-left: 0; margin-top: 22px; } .agent { display: block; } .agent .button { margin-top: 22px; } }
+    @media (max-width: 440px) { .shell { width: min(100% - 28px, 1120px); } .proof, .grid { grid-template-columns: 1fr; } .proof div { border: 0; padding: 0; margin-top: 18px; } .proof div:first-child { margin-top: 0; } }
+  </style>
+</head>
+<body>
+  <header><nav class="shell"><a class="brand" href="#top">htmx<span>-query</span></a><div class="links"><a href="#install">Install</a><a href="#examples">Examples</a><a href="#api">API</a><a href="#agents">AI agents</a></div><a class="button" href="/">Live demo ↗</a></nav></header>
+  <main id="top">
+    <div class="shell hero">
+      <div><div class="eyebrow">For htmx 2</div><h1>Server HTML,<br><em>instantly useful.</em></h1><p class="lede">A tiny htmx extension for stale-while-revalidate caching, retries, request deduplication, and optimistic updates—without a client-side data store.</p><div class="actions"><a class="button primary" href="#install">Get started ↓</a><a class="button" href="/">Try the live demo ↗</a></div></div>
+      <div class="terminal"><div class="terminal-head">your-page.html</div><pre><span class="dim">&lt;!-- one attribute, instant cache --&gt;</span>
+&lt;ul <span class="blue">hx-get</span>=<span class="green">"/todos"</span>
+    <span class="blue">hx-trigger</span>=<span class="green">"load"</span>
+    <span class="blue">hx-swr</span>=<span class="green">"30"</span>&gt;
+&lt;/ul&gt;
+
+<span class="dim">// Cached for 30s. Stale content appears
+// immediately while htmx refreshes it.</span></pre></div>
+    </div>
+    <div class="shell proof"><div><strong>4.71 kB</strong><span>minified + brotli</span></div><div><strong>100/100</strong><span>integration tests</span></div><div><strong>8</strong><span>real-browser tests · 3 engines</span></div><div><strong>1 MiB</strong><span>maximum cache memory</span></div></div>
+
+    <section id="why"><div class="shell"><div class="eyebrow">Why htmx-query</div><h2>The parts you reach for after the first htmx page.</h2><p class="section-intro">Keep server-rendered HTML and htmx’s request model. Add the response-handling conveniences that make interfaces feel immediate and resilient.</p><div class="grid"><article class="card"><div class="icon">↻</div><h3>Stale while revalidate</h3><p>Render a cached fragment immediately, then quietly refresh it when it becomes stale.</p></article><article class="card"><div class="icon">↯</div><h3>Safe retries</h3><p>Retry GETs with exponential backoff. Unsafe verbs require an explicit opt-in.</p></article><article class="card"><div class="icon">≡</div><h3>One request, many targets</h3><p>Collapse identical in-flight GETs; each target renders when the winner lands.</p></article><article class="card"><div class="icon">+</div><h3>Optimistic HTML</h3><p>Append a developer-authored pending template and remove only its nodes on failure.</p></article><article class="card"><div class="icon">⌁</div><h3>Native htmx behavior</h3><p>Cached swaps preserve <code>hx-swap</code> and <code>hx-select</code> behavior.</p></article><article class="card"><div class="icon">□</div><h3>No data layer</h3><p>No JSON cache, client store, offline queue, or SPA rewrite. Just rendered HTML.</p></article></div></div></section>
+
+    <section id="install"><div class="shell"><div class="eyebrow">Install</div><h2>Two scripts. One extension.</h2><div class="install"><ol class="steps"><li><strong>Load htmx 2</strong>htmx-query supports <code>htmx.org &gt;=2.0.0 &lt;3</code>.</li><li><strong>Load htmx-query</strong>The CDN build self-registers when <code>window.htmx</code> exists.</li><li><strong>Enable the extension</strong>Add <code>hx-ext="query"</code> to your body or a smaller subtree.</li></ol><div class="code"><pre><span class="orange">&lt;script</span> src=<span class="green">"https://unpkg.com/htmx.org@2.0.10"</span><span class="orange">&gt;&lt;/script&gt;</span>
+<span class="orange">&lt;script</span> src=<span class="green">"https://unpkg.com/htmx-query@0.1.0"</span><span class="orange">&gt;&lt;/script&gt;</span>
+
+<span class="orange">&lt;body</span> <span class="blue">hx-ext</span>=<span class="green">"query"</span><span class="orange">&gt;</span>
+  ...
+<span class="orange">&lt;/body&gt;</span></pre></div></div><p class="note"><strong>Production:</strong> pin exact CDN versions and add Subresource Integrity hashes. Floating versions cannot be integrity-checked.</p><div class="example"><div class="example-copy"><div class="tag">Bundlers</div><h3>Register explicitly</h3><p>Use the ESM build when htmx is supplied by your bundler.</p></div><div class="code"><pre><span class="blue">import</span> htmx <span class="blue">from</span> <span class="green">'htmx.org'</span>;
+<span class="blue">import</span> { register } <span class="blue">from</span> <span class="green">'htmx-query'</span>;
+
+register(htmx);</pre></div></div></div></section>
+
+    <section id="examples"><div class="shell"><div class="eyebrow">Examples</div><h2>Use the attributes you already know.</h2><div class="example"><div class="example-copy"><div class="tag">Cache + SWR</div><h3>Make a fragment feel instant.</h3><p>A fresh hit cancels the network request. A stale hit renders now and refreshes in the background.</p></div><div class="code"><pre><span class="orange">&lt;ul</span> <span class="blue">hx-get</span>=<span class="green">"/todos"</span>
+    <span class="blue">hx-trigger</span>=<span class="green">"load, refresh"</span>
+    <span class="blue">hx-swr</span>=<span class="green">"30"</span><span class="orange">&gt;&lt;/ul&gt;</span>
+
+<span class="dim">&lt;!-- later: htmx.trigger(list, 'refresh') --&gt;</span></pre></div></div><div class="example"><div class="example-copy"><div class="tag">Retry</div><h3>Recover from a flaky GET.</h3><p>Retries use exponential backoff. POST requests are never retried unless you explicitly opt in.</p></div><div class="code"><pre><span class="orange">&lt;button</span> <span class="blue">hx-get</span>=<span class="green">"/reports/today"</span>
+  <span class="blue">hx-target</span>=<span class="green">"#report"</span>
+  <span class="blue">hx-retry</span>=<span class="green">"3"</span>
+  <span class="blue">hx-retry-delay</span>=<span class="green">"500"</span><span class="orange">&gt;</span>
+  Refresh report
+<span class="orange">&lt;/button&gt;</span></pre></div></div><div class="example"><div class="example-copy"><div class="tag">Optimistic update</div><h3>Show the pending row immediately.</h3><p>The template is removed before a real response swap and on request failure.</p></div><div class="code"><pre><span class="orange">&lt;form</span> <span class="blue">hx-post</span>=<span class="green">"/todos"</span>
+  <span class="blue">hx-target</span>=<span class="green">"#list"</span> <span class="blue">hx-swap</span>=<span class="green">"beforeend"</span>
+  <span class="blue">hx-optimistic</span>=<span class="green">"#pending"</span><span class="orange">&gt;</span>...<span class="orange">&lt;/form&gt;</span>
+<span class="orange">&lt;template</span> <span class="blue">id</span>=<span class="green">"pending"</span><span class="orange">&gt;</span>&lt;li&gt;Saving…&lt;/li&gt;<span class="orange">&lt;/template&gt;</span></pre></div></div></div></section>
+
+    <section id="api"><div class="shell"><div class="eyebrow">Reference</div><h2>A small attribute surface.</h2><table><thead><tr><th>Attribute</th><th>Use</th></tr></thead><tbody><tr><td>hx-swr="TTL"</td><td>Cache a GET response; fresh entries cancel the request, stale entries revalidate.</td></tr><tr><td>hx-swr-key="key"</td><td>Override the default <code>verb:final URL</code> cache key.</td></tr><tr><td>hx-swr-vary="Header"</td><td>Opt in a safe request header such as <code>Accept-Language</code> as a key dimension.</td></tr><tr><td>hx-swr-prefetch="hover focus"</td><td>One same-origin GET on hover and/or keyboard focus that fills the cache without swapping the source.</td></tr><tr><td>hx-retry="N"</td><td>Retry an eligible failed request up to N times (maximum 10).</td></tr><tr><td>hx-retry-delay="ms"</td><td>Set the retry backoff base; defaults to 1000 ms.</td></tr><tr><td>hx-retry-unsafe</td><td>Allow retries for non-GET requests.</td></tr><tr><td>hx-optimistic="#template"</td><td>Append pending template nodes until the request resolves.</td></tr></tbody></table><div class="example"><div class="example-copy"><div class="tag">Imperative helpers</div><h3>Invalidate when your mutation changes a resource.</h3></div><div class="code"><pre>htmx.query.invalidate(<span class="green">'/todos'</span>); <span class="dim">// remove matching cached entries</span>
+htmx.query.clear();               <span class="dim">// clear every entry</span>
+htmx.query.peek();                <span class="dim">// Map copy, for debugging</span>
+htmx.query.stats();               <span class="dim">// cache/dedupe counters and memory</span>
+htmx.query.setNamespace(<span class="green">'acme'</span>); <span class="dim">// clear old account data, then scope future keys</span>
+document.body.addEventListener(<span class="green">'hq:cache'</span>, observe); <span class="dim">// hit/miss/store/evict/skip/clear</span></pre></div></div><p class="note"><strong>HTTP and account safety:</strong> cached HTML is server-rendered HTML and is reinserted verbatim. <code>Age</code> and <code>Date</code> reduce freshness; <code>Expires</code> provides a TTL when <code>max-age</code> is absent. <code>no-store</code>, <code>private</code>, and unkeyed request-header variation are never retained. An ETag entry revalidates with <code>If-None-Match</code>. Send <code>HX-Cache-Invalidate: {"path":"/todos","mode":"path"}</code> after a mutation to clear matching entries. Call <code>setNamespace(accountId)</code> after account changes.</p></div></section>
+
+    <section id="agents"><div class="shell"><div class="agent"><div><div class="eyebrow">For AI coding agents</div><h2>Give your agent the real rules.</h2><p><code>llms.txt</code> describes the API, invariants, source layout, test commands, and safe modification rules in a compact form. It is the fastest way for an agent to understand this repository before changing it.</p></div><a class="button primary" href="../llms.txt">Open llms.txt ↗</a></div></div></section>
+  </main>
+  <footer class="shell"><span>htmx-query · HTML-first query ergonomics</span><span>Run <code>npm run demo</code> for the local interactive demo.</span></footer>
+</body>
+</html>

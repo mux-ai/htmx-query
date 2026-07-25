@@ -1,0 +1,5 @@
+# htmx-query AI guide
+
+The canonical AI-agent guide is [llms.txt](./llms.txt). Read that file before
+making substantive changes; it contains the public API, binding invariants,
+source layout, and required verification workflow.

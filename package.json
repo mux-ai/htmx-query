@@ -1,0 +1,73 @@
+{
+  "name": "htmx-query",
+  "version": "0.1.0",
+  "description": "React Query-flavored caching, SWR, retry, dedupe and optimistic updates for htmx 2",
+  "type": "module",
+  "main": "./dist/htmx-query.cjs",
+  "module": "./dist/htmx-query.js",
+  "types": "./src/index.d.ts",
+  "unpkg": "./dist/htmx-query.min.js",
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./dist/htmx-query.js",
+      "require": "./dist/htmx-query.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "docs",
+    "CHANGELOG.md",
+    "LICENSE",
+    "RELEASING.md",
+    "llms.txt",
+    "llm.txt"
+  ],
+  "license": "MIT",
+  "keywords": [
+    "htmx",
+    "htmx-extension",
+    "swr",
+    "cache",
+    "retry",
+    "optimistic"
+  ],
+  "peerDependencies": {
+    "htmx.org": ">=2.0.0 <3"
+  },
+  "scripts": {
+    "build": "node build.js",
+    "test": "vitest run",
+    "test:browser": "playwright test",
+    "typecheck": "tsc --project tsconfig.types.json",
+    "changelog:check": "node scripts/check-changelog.js",
+    "package:verify": "node scripts/verify-package.js",
+    "release:verify": "node scripts/verify-release.js",
+    "dev": "vitest",
+    "lint": "eslint .",
+    "size": "size-limit",
+    "bench": "node bench/cache-benchmark.js",
+    "bench:check": "node bench/cache-benchmark.js --check",
+    "demo": "node examples/server.js",
+    "prepublishOnly": "npm run changelog:check && npm run lint && npm run typecheck && npm run build && npm run test && npm run size"
+  },
+  "size-limit": [
+    {
+      "path": "dist/htmx-query.min.js",
+      "limit": "5 kB"
+    }
+  ],
+  "devDependencies": {
+    "@playwright/test": "^1.61.1",
+    "@size-limit/preset-small-lib": "^12.1.0",
+    "esbuild": "^0.28.1",
+    "eslint": "^10.7.0",
+    "htmx.org": "^2.0.10",
+    "jsdom": "^29.1.1",
+    "nise": "^6.1.5",
+    "size-limit": "^12.1.0",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.10"
+  }
+}
