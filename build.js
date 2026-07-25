@@ -13,6 +13,12 @@ await Promise.all([
   build({ ...shared, format: 'cjs', outfile: 'dist/htmx-query.cjs' }),
 ]);
 
+// One declaration copy per module format: .d.ts for ESM, .d.cts so
+// node16/nodenext CommonJS consumers do not see the types masquerade as ESM.
+const declarations = await readFile('src/index.d.ts');
+await writeFile('dist/htmx-query.d.ts', declarations);
+await writeFile('dist/htmx-query.d.cts', declarations);
+
 // SRI for every script-tag artifact; unpkg serves htmx-query.min.js by default.
 for (const file of ['htmx-query.min.js', 'htmx-query.iife.js']) {
   const content = await readFile(`dist/${file}`);

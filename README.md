@@ -193,7 +193,7 @@ accessible drag-and-drop library in production.
 | `hq:prefetch` | `body` (bubbles) | An explicit prefetch completed or was skipped. Detail is `{ action: 'success' | 'error' | 'skip', path?, reason? }`. |
 | `hq:retryExhausted` | the element (bubbles) | All retry attempts failed. |
 | `hq:staleError` | `body` (bubbles) | A stale fragment was rendered, then its background revalidation failed. Detail includes `key` and HTTP `status`. |
-| `hq:cache` | `body` (bubbles) | Cache lifecycle event: hit, miss, store, eviction, skip, or clear. |
+| `hq:cache` | `body` (bubbles) | Cache lifecycle event; `detail.action` is one of `hit`, `miss`, `store`, `evict`, `skip`, or `clear`. |
 
 ## JS API
 

@@ -11,6 +11,7 @@
 * [Optimistic Revert](/rules/optimistic-revert.md) - The pre-optimistic DOM snapshot is restored before the real response swaps in, and on any request error.
 * [Parse Cache Headers Defensively](/rules/parse-cache-headers-defensively.md) - HTTP cache policy parsing must tolerate quoted values, malformed numeric directives, and wildcard Vary without accidentally widening reuse.
 * [Precise Path Invalidation](/rules/precise-path-invalidation.md) - Applications can select resource-path invalidation to avoid substring collisions while retaining the existing contains behavior by default.
+* [Release Pipeline Preconditions](/rules/release-pipeline-preconditions.md) - First-publish bootstrap, repo visibility, and toolchain floors that the release workflow depends on but cannot enforce by itself.
 * [Retry Backoff](/rules/retry-backoff.md) - Retry delay is exponential, base * 2^(attempt-1), capped at 10x base and 30 seconds; equal jitter spreads callers over the latter half of the delay. A numeric or HTTP-date Retry-After response header overrides the computed delay before the same cap and jitter.
 * [Safe Retry Verbs](/rules/safe-retry-verbs.md) - Only GET requests are retried by default; non-idempotent verbs require an explicit hx-retry-unsafe attribute.
 * [Server Freshness Constraints](/rules/server-freshness-constraints.md) - Response cache directives can tighten, but never extend, the freshness requested by hx-swr.

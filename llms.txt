@@ -100,6 +100,9 @@ pre-1.0 minor version.
 - `src/retry.js`: retry contexts, backoff, and target preservation.
 - `src/optimistic.js`: targeted optimistic node insertion/removal.
 - `src/utils.js`: htmx/request helpers and cached swaps.
+- `src/prefetch.js`: opt-in hover/focus cache warm-up and its lifecycle events.
+- `src/invalidate.js`: HX-Cache-Invalidate response-header handling.
+- `src/scope.js`: cache-key namespace scoping.
 - `test/`: Vitest + jsdom + real htmx integration tests; `test/browser/` is Playwright coverage against the demo in Chromium, Firefox, and WebKit.
 - `docs/index.html`: static landing page; `examples/demo.html`: interactive demo.
 - `docs/production.md`: production integration, CSP, SRI, namespace, invalidation, and accessible-prefetch recipe.

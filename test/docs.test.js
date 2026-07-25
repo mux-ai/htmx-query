@@ -16,8 +16,8 @@ describe('documentation surface', () => {
     expect(page).toContain('llms.txt');
     expect(page).toContain('Try the live demo');
     expect(page).toContain('htmx.org@2.0.10');
-    expect(page).toContain('100/100');
-    expect(page).toContain('4.71 kB');
+    expect(page).toContain('103/103');
+    expect(page).toContain('4.75 kB');
     expect(page).toContain('setNamespace');
     expect(page).toContain('If-None-Match');
     expect(page).toContain('hq:cache');
