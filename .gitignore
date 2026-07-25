@@ -12,3 +12,13 @@ yarn-debug.log*
 *.tgz
 .DS_Store
 .noli/write.lock
+.pnp
+.pnp.js
+.next/
+out/
+build/
+*.pem
+yarn-error.log*
+*.tsbuildinfo
+next-env.d.ts
+.vercel/
