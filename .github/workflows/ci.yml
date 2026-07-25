@@ -33,5 +33,6 @@ jobs:
         with: { node-version: 22, cache: pnpm }
       - run: pnpm install --frozen-lockfile
       - run: pnpm add --workspace-root --save-dev --lockfile=false htmx.org@${{ matrix.htmx }}
+      - run: pnpm build
       - run: pnpm exec playwright install --with-deps chromium firefox webkit
       - run: pnpm test:browser
