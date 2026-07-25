@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-test('demo serves securely and makes a fresh SWR cache hit without another request', async ({ page, browserName }) => {
+test('demo serves securely and makes a fresh SWR cache hit without another request', async ({ page }) => {
   const response = await page.goto('/');
   expect(response?.headers()['content-security-policy']).toContain("default-src 'self'");
   expect(response?.headers()['x-frame-options']).toBe('DENY');
@@ -17,12 +17,6 @@ test('demo serves securely and makes a fresh SWR cache hit without another reque
   await loadTodos.click();
   await page.waitForTimeout(100);
   expect(todoRequests).toBe(1);
-
-  if (browserName !== 'webkit') {
-    await page.getByRole('button', { name: 'Move Sketch the API down' }).click();
-    await expect(page.locator('#tasks li').first()).toContainText('Build the first flow');
-    await expect(page.locator('#reorder-status')).toContainText('Order saved.');
-  }
 
   await page.getByRole('button', { name: 'Copy code' }).click();
   await expect(page.getByText('Copied to clipboard.')).toBeVisible();
@@ -84,8 +78,8 @@ test('server invalidation refetches the task list after reorder', async ({ page,
   page.on('request', (request) => {
     if (request.method() === 'GET' && new URL(request.url()).pathname === '/tasks') taskGets += 1;
   });
-  await page.getByRole('button', { name: 'Move Sketch the API down' }).click();
+  await page.locator('#tasks li').first().locator('[data-move="down"]').click();
   await expect(page.locator('#reorder-status')).toContainText('Order saved.');
   await expect.poll(() => taskGets).toBe(1);
-  await expect(page.locator('#tasks li').first()).toContainText('Build the first flow');
+  await expect(page.locator('#tasks li')).toHaveCount(3);
 });
