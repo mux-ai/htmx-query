@@ -21,7 +21,7 @@ jobs:
         with:
           languages: javascript-typescript
           build-mode: none
-      - uses: github/codeql-action/analyze@26dfab68fffc1cbc36c56970c32f0e53cf1fcc01 # v4.37.2
+      - uses: github/codeql-action/analyze@e0647621c2984b5ed2f768cb892365bf2a616ad1 # v4.37.2
         with:
           # Private repositories require GitHub Advanced Security for SARIF
           # upload. Keep analysis enabled without failing at that API boundary.
