@@ -16,7 +16,7 @@ jobs:
         with: { node-version: 22, cache: pnpm }
       - run: pnpm install --frozen-lockfile
       - run: pnpm audit --audit-level high
-      - run: pnpm add --save-dev --lockfile=false htmx.org@${{ matrix.htmx }}
+      - run: pnpm add --workspace-root --save-dev --lockfile=false htmx.org@${{ matrix.htmx }}
       - run: pnpm prepublishOnly
       - run: npm run package:verify
       - run: pnpm bench:check
@@ -32,6 +32,6 @@ jobs:
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
         with: { node-version: 22, cache: pnpm }
       - run: pnpm install --frozen-lockfile
-      - run: pnpm add --save-dev --lockfile=false htmx.org@${{ matrix.htmx }}
+      - run: pnpm add --workspace-root --save-dev --lockfile=false htmx.org@${{ matrix.htmx }}
       - run: pnpm exec playwright install --with-deps chromium firefox webkit
       - run: pnpm test:browser
