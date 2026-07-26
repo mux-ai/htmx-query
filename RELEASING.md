@@ -5,9 +5,22 @@ fail closed.
 
 ## One-time setup
 
-1. On npmjs.com, configure **Trusted Publishing** for `htmx-query`: bind this
-   GitHub repository and the release workflow as the trusted publisher. There
-   is deliberately no automation-token fallback.
+1. **Make `mux-ai/htmx-query` public before the first release.**
+   `npm publish --provenance` hard-fails for private repositories, and the
+   published provenance links would be meaningless for a repo nobody can see.
+2. **Bootstrap the very first publish.** Trusted Publishing can only be
+   configured for a package that already exists on npm. For `0.1.0` only:
+   publish once manually with a short-lived granular automation token and
+   WITHOUT `--provenance` (provenance requires CI OIDC), then revoke the
+   token immediately.
+3. On npmjs.com, configure **Trusted Publishing** for `htmx-query`: bind this
+   GitHub repository and the release workflow as the trusted publisher. From
+   the second release on there is deliberately no token fallback.
+4. Note the toolchain floor baked into `release.yml`: Node 24 (bundles npm >=
+   11.5.1, required for Trusted Publishing). Do not lower `node-version`
+   below 24 in the publish job. Local installs use the `packageManager`
+   pin (pnpm 9) so lockfile resolution matches CI; pnpm 11's default
+   release-age policy rejects freshly published dependency versions.
 
 ## Per release
 

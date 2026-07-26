@@ -13,6 +13,7 @@ const requiredFiles = [
   'src/index.d.ts', 'dist/htmx-query.min.js', 'dist/htmx-query.min.js.sri',
   'dist/htmx-query.iife.js', 'dist/htmx-query.iife.js.sri',
   'dist/htmx-query.js', 'dist/htmx-query.cjs',
+  'dist/htmx-query.d.ts', 'dist/htmx-query.d.cts',
 ];
 const sriFiles = ['dist/htmx-query.min.js', 'dist/htmx-query.iife.js'];
 
@@ -38,7 +39,15 @@ try {
   }
   await exec('node', ['--input-type=module', '-e', "import { register } from 'htmx-query'; if (typeof register !== 'function') process.exit(1)"], { cwd: consumer });
   await exec('node', ['-e', "const { register } = require('htmx-query'); if (typeof register !== 'function') process.exit(1)"], { cwd: consumer });
-  console.log(`Verified packed files, SRI, ESM, and CJS for ${packageJson.name}@${packageJson.version}.`);
+  // TS node16 CommonJS consumers must resolve the .d.cts types (guards
+  // against ESM-masquerading declarations breaking require() typing).
+  const { writeFile } = await import('node:fs/promises');
+  await writeFile(join(consumer, 'smoke.cts'),
+    "import { register } from 'htmx-query';\nconst api: ReturnType<typeof register> | undefined = undefined;\nvoid api;\n");
+  await exec('node', [join(root, 'node_modules', 'typescript', 'bin', 'tsc'),
+    '--noEmit', '--strict', '--module', 'node16', '--moduleResolution', 'node16',
+    join(consumer, 'smoke.cts')], { cwd: consumer });
+  console.log(`Verified packed files, SRI, ESM, CJS, and node16 CJS types for ${packageJson.name}@${packageJson.version}.`);
 } finally {
   if (consumer) await rm(consumer, { recursive: true, force: true });
   if (tarball) await rm(tarball, { force: true });

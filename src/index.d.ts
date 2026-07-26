@@ -90,5 +90,6 @@ declare global {
     'hq:staleError': CustomEvent<StaleErrorDetail>;
     'hq:invalidated': CustomEvent<InvalidatedDetail>;
     'hq:prefetch': CustomEvent<PrefetchDetail>;
+    'hq:retryExhausted': CustomEvent<undefined>;
   }
 }

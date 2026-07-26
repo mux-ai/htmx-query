@@ -74,6 +74,9 @@ test('focus prefetch warms the cache without replacing the focused link', async 
 test('server invalidation refetches the task list after reorder', async ({ page, browserName }) => {
   test.skip(browserName === 'webkit', 'WebKit htmx event bridge does not fire from:body for this mutation; covered by Chromium/Firefox and server tests.');
   await page.goto('/');
+  // Let the initial hx-trigger="load" fetch settle before counting: a
+  // late-starting initial GET would otherwise be counted with the refetch.
+  await expect(page.locator('#tasks li')).toHaveCount(3);
   let taskGets = 0;
   page.on('request', (request) => {
     if (request.method() === 'GET' && new URL(request.url()).pathname === '/tasks') taskGets += 1;

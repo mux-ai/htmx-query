@@ -4,6 +4,11 @@ All notable changes to this project are documented here.
 
 ## 0.1.0
 
+- Fixed npm packaging for TypeScript node16 CommonJS consumers (per-format
+  type declarations), exposed `./package.json` in the exports map, pinned
+  pnpm via `packageManager`, and moved the publish job to Node 24 so npm
+  Trusted Publishing works.
+
 - Added `stale-while-revalidate` and `stale-if-error` response-directive
   support, keyboard `focus` prefetch triggers, invalidation counts in
   `hq:invalidated`, per-CDN-artifact SRI files, inherited `hx-select` on

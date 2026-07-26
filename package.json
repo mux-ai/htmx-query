@@ -2,6 +2,13 @@
   "name": "htmx-query",
   "version": "0.1.0",
   "description": "React Query-flavored caching, SWR, retry, dedupe and optimistic updates for htmx 2",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mux-ai/htmx-query.git"
+  },
+  "homepage": "https://github.com/mux-ai/htmx-query#readme",
+  "bugs": "https://github.com/mux-ai/htmx-query/issues",
+  "sideEffects": true,
   "type": "module",
   "main": "./dist/htmx-query.cjs",
   "module": "./dist/htmx-query.js",
@@ -9,10 +16,16 @@
   "unpkg": "./dist/htmx-query.min.js",
   "exports": {
     ".": {
-      "types": "./src/index.d.ts",
-      "import": "./dist/htmx-query.js",
-      "require": "./dist/htmx-query.cjs"
-    }
+      "import": {
+        "types": "./dist/htmx-query.d.ts",
+        "default": "./dist/htmx-query.js"
+      },
+      "require": {
+        "types": "./dist/htmx-query.d.cts",
+        "default": "./dist/htmx-query.cjs"
+      }
+    },
+    "./package.json": "./package.json"
   },
   "files": [
     "dist",
@@ -69,5 +82,6 @@
     "size-limit": "^12.1.0",
     "typescript": "^7.0.2",
     "vitest": "^4.1.10"
-  }
+  },
+  "packageManager": "pnpm@9.15.9"
 }
