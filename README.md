@@ -1,5 +1,10 @@
 # htmx-query
 
+[![npm version](https://img.shields.io/npm/v/htmx-query)](https://www.npmjs.com/package/htmx-query)
+[![ci](https://github.com/mux-ai/htmx-query/actions/workflows/ci.yml/badge.svg)](https://github.com/mux-ai/htmx-query/actions/workflows/ci.yml)
+[![bundle size](https://img.shields.io/bundlephobia/minzip/htmx-query?label=min%2Bgzip)](https://bundlephobia.com/package/htmx-query)
+[![license](https://img.shields.io/npm/l/htmx-query)](LICENSE)
+
 React Query-flavored **caching, stale-while-revalidate, retry, request dedupe
 and optimistic updates** for [htmx](https://htmx.org) — as a single ~4.75 kB
 extension. No build step, no client data store, no API changes: everything is
@@ -7,7 +12,7 @@ opt-in `hx-*` attributes.
 
 Requires **htmx 2.x** (`htmx.org >= 2.0.0 < 3`).
 
-[Landing page](docs/index.html) · [Production recipe](docs/production.md) · [AI agent guide](llms.txt) · [Interactive demo](examples/demo.html)
+[Landing page](https://mux-ai.github.io/htmx-query/) · [Production recipe](docs/production.md) · [AI agent guide](llms.txt) · [Interactive demo](examples/demo.html)
 
 ## Why use htmx-query?
 
