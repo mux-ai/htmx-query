@@ -1,7 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cache, MAX_CACHE_BYTES, MAX_ENTRY_BYTES } from '../../src/cache.js';
+import { cache, MAX_CACHE_BYTES, MAX_ENTRIES, MAX_ENTRY_BYTES, MAX_VARIANTS } from '../../src/cache.js';
 
-afterEach(() => cache.clear());
+afterEach(() => {
+  cache.clear();
+  cache.resetLimits();
+});
 
 describe('cache store', () => {
   it('stores and returns entries with a timestamp', () => {
@@ -189,5 +192,51 @@ describe('cache store', () => {
       expect(entries.every((entry) => entry.bytes <= MAX_ENTRY_BYTES)).toBe(true);
       expect(stats.bytes).toBe(entries.reduce((sum, entry) => sum + entry.bytes, 0));
     }
+  });
+});
+
+describe('configurable limits', () => {
+  it('reports current limits without change for a null argument', () => {
+    expect(cache.configureLimits(null)).toEqual({
+      maxEntries: MAX_ENTRIES,
+      maxVariants: MAX_VARIANTS,
+      maxCacheBytes: MAX_CACHE_BYTES,
+      maxEntryBytes: MAX_ENTRY_BYTES,
+    });
+  });
+
+  it('applies valid fields, floors fractions, and ignores invalid values', () => {
+    const limits = cache.configureLimits({ maxEntries: 2.9, maxCacheBytes: 'garbage', maxEntryBytes: -5, maxVariants: 0 });
+    expect(limits).toEqual({
+      maxEntries: 2,
+      maxVariants: MAX_VARIANTS,
+      maxCacheBytes: MAX_CACHE_BYTES,
+      maxEntryBytes: MAX_ENTRY_BYTES,
+    });
+  });
+
+  it('shrinking drops oversized entries and evicts oldest entries immediately', () => {
+    const events = [];
+    const observe = (event) => events.push(event.detail.action);
+    document.body.addEventListener('hq:cache', observe);
+    cache.set('get:/a', 'a'.repeat(64));
+    cache.set('get:/b', 'b');
+    cache.set('get:/c', 'c');
+    cache.set('get:/d', 'd');
+    const before = cache.stats().evictions;
+    cache.configureLimits({ maxEntries: 2, maxEntryBytes: 32 });
+    document.body.removeEventListener('hq:cache', observe);
+
+    expect([...cache.peek().keys()]).toEqual(['get:/c', 'get:/d']);
+    expect(cache.stats().evictions - before).toBe(2);
+    expect(events.filter((action) => action === 'evict').length).toBe(2);
+  });
+
+  it('raising maxEntries lets the store grow past the default bound', () => {
+    cache.configureLimits({ maxEntries: MAX_ENTRIES + 20 });
+    for (let index = 0; index < MAX_ENTRIES + 10; index += 1) {
+      cache.set(`get:/grow/${index}`, 'x');
+    }
+    expect(cache.stats().entries).toBe(MAX_ENTRIES + 10);
   });
 });

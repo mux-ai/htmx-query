@@ -5,7 +5,9 @@ import * as dedupe from './dedupe.js';
 import * as optimistic from './optimistic.js';
 import { invalidateFromResponse } from './invalidate.js';
 import * as prefetch from './prefetch.js';
-import { getNamespace, setNamespace } from './scope.js';
+import { getNamespace, setNamespace, scopedKey } from './scope.js';
+import * as persist from './persist.js';
+import * as crosstab from './crosstab.js';
 import { setHtmx } from './utils.js';
 
 export function register(htmx) {
@@ -96,7 +98,20 @@ export function register(htmx) {
 
   htmx.query = {
     invalidate: (prefix, options) => cache.invalidate(prefix, options),
-    clear: () => cache.clear(),
+    // Manual seeding: same key a consumer would put in hx-swr-key (or the
+    // implicit "get:<path>" form), scoped to the active namespace like every
+    // request-derived key. An optional ttl (seconds) is recorded as an origin
+    // max-age, so effective freshness stays min(hx-swr, ttl).
+    put: (key, html, options = {}) => {
+      if (typeof key !== 'string' || !key || typeof html !== 'string' || !html) return false;
+      const ttl = Number(options.ttl);
+      const cacheControl = Number.isFinite(ttl) && ttl >= 0 ? { maxAge: ttl } : {};
+      return cache.set(scopedKey(key), html, { cacheControl });
+    },
+    clear: () => {
+      cache.clear();
+      persist.drop();
+    },
     peek: () => cache.peek(),
     stats: () => ({ cache: cache.stats(), dedupe: dedupe.stats(), staleErrors: swr.stats().staleErrors, namespace: getNamespace() }),
     debug: () => ({
@@ -111,13 +126,20 @@ export function register(htmx) {
       const events = Object.hasOwn(options, 'cacheEvents')
         ? cache.configureEvents(options.cacheEvents)
         : cache.configureEvents();
-      return { cacheEvents: events };
+      const limits = cache.configureLimits(Object.hasOwn(options, 'cache') ? options.cache : null);
+      const persisted = persist.configure(Object.hasOwn(options, 'persist') ? options.persist : undefined);
+      const crossTab = crosstab.configure(Object.hasOwn(options, 'crossTab') ? options.crossTab : undefined);
+      return { cacheEvents: events, cache: limits, persist: persisted, crossTab };
     },
     setNamespace: (value) => {
       const next = value == null ? '' : String(value);
       if (next !== getNamespace()) {
+        // An account switch is a security boundary: drop the outgoing
+        // namespace's persisted record before the new one becomes active.
+        persist.drop();
         setNamespace(next);
         cache.clear();
+        if (persist.isEnabled()) persist.hydrate();
       }
       return getNamespace();
     },

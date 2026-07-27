@@ -68,7 +68,7 @@
   "size-limit": [
     {
       "path": "dist/htmx-query.min.js",
-      "limit": "5 kB"
+      "limit": "7 kB"
     }
   ],
   "devDependencies": {

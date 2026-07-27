@@ -6,7 +6,7 @@
 [![license](https://img.shields.io/npm/l/htmx-query)](LICENSE)
 
 React Query-flavored **caching, stale-while-revalidate, retry, request dedupe
-and optimistic updates** for [htmx](https://htmx.org) — as a single ~4.75 kB
+and optimistic updates** for [htmx](https://htmx.org) — as a single ~5.8 kB
 extension. No build step, no client data store, no API changes: everything is
 opt-in `hx-*` attributes.
 
@@ -34,16 +34,19 @@ without introducing a component framework or a second data model.
 - **Safer defaults:** POST retries are disabled, sensitive `Vary` headers are
   rejected, and `no-store`/`private` responses are not cached.
 - **Small integration surface:** CDN, ESM, and CommonJS builds, plus bundled
-  TypeScript declarations. The minified brotli bundle is kept below 5 kB.
+  TypeScript declarations. The minified brotli bundle is kept below 7 kB.
 - **Observable behavior:** cache events, invalidation events, hit-rate metrics,
   stale-error metrics, and a bounded `debug()` view are available when needed.
 
 ### Limitations and trade-offs
 
-- The cache is **in-memory and page-scoped**. A full navigation clears it; it
-  is not an offline cache and does not persist across tabs.
-- It stores **HTML, not normalized data**. There is no `setQueryData`, query
-  graph, offline mutation queue, or cross-view sharing of one response.
+- The cache is **in-memory and page-scoped by default**. `configure({ persist: true })`
+  mirrors it into `sessionStorage` so a full navigation can restore it, but that
+  is still per-tab: it is not an offline cache and never shares cached HTML
+  across tabs. `configure({ crossTab: true })` shares *invalidation* only.
+- It stores **HTML, not normalized data**. `htmx.query.put` seeds an entry, but
+  there is no query graph, offline mutation queue, or cross-view sharing of one
+  response.
 - Cache keys are request-oriented. If two views need different HTML, give them
   different `hx-swr-key` values or keep them as separate requests.
 - The default cache is bounded to 100 entries, 1 MiB total, 256 KiB per entry,
@@ -153,11 +156,15 @@ htmx.query.invalidate('/todos'); // drops matching entries + fires hq:invalidate
 Prefetch is off by default. Add it only to a same-origin GET that already has
 `hx-swr`; a single best-effort request fills the cache and never swaps the
 element. `hover` covers pointer users, `focus` covers keyboard users — list
-both for parity:
+both for parity. `visible` prefetches when the element scrolls into view,
+which suits below-the-fold links:
 
 ```html
 <a href="/reports" hx-get="/reports" hx-swr="60"
    hx-swr-prefetch="hover focus">Reports</a>
+
+<a href="/archive" hx-get="/archive" hx-swr="60"
+   hx-swr-prefetch="visible">Archive</a>
 ```
 
 ### Drag-and-drop reorder
@@ -184,7 +191,7 @@ accessible drag-and-drop library in production.
 | `hx-swr="TTL"` | GET elements | Cache the response. Cached copy renders instantly on later requests; request is cancelled while the entry is younger than TTL seconds, otherwise it revalidates in the background. `hx-swr="0"` = always stale, always revalidate. Also opts the element into dedupe. |
 | `hx-swr-key="key"` | GET elements | Override the cache key (default `get:<final URL>`). |
 | `hx-swr-vary="Header, ..."` | GET elements | Opt in safe request-header values as cache-key dimensions, for example `Accept-Language`. `Cookie` and `Authorization` are rejected. |
-| `hx-swr-prefetch="hover focus"` | GET elements with `hx-swr` | Token list. One same-origin, best-effort request per element that populates the cache without swapping it: `hover` for pointer users, `focus` for keyboard users. |
+| `hx-swr-prefetch="hover focus visible"` | GET elements with `hx-swr` | Token list. One same-origin, best-effort request per element that populates the cache without swapping it: `hover` for pointer users, `focus` for keyboard users, `visible` when the element scrolls into the viewport. `visible` needs `IntersectionObserver` and is inert without it. |
 | `hx-retry="N"` | any request | Retry failed requests up to N times (maximum 10). |
 | `hx-retry-delay="ms"` | with `hx-retry` | Base backoff delay, default 1000. Delay = `base * 2^(attempt-1)`, capped at 10× base and 30 seconds; equal jitter spreads retries. A seconds or HTTP-date `Retry-After` header overrides it before the same cap. |
 | `hx-retry-unsafe` | with `hx-retry` | Allow retrying non-GET verbs (off by default — retrying a POST can duplicate a write). |
@@ -212,6 +219,10 @@ htmx.query.debug();            // read-only stats plus cache keys
 htmx.query.resetMetrics();     // reset diagnostic counters without clearing entries
 htmx.query.setNamespace('acme'); // scope keys to an account; changing it clears old entries
 htmx.query.configure({ cacheEvents: ['evict', 'skip'] }); // true, false, or event-action filter
+htmx.query.configure({ cache: { maxEntries: 200, maxCacheBytes: 2 * 1024 * 1024 } }); // resize cache bounds; shrinking evicts immediately
+htmx.query.configure({ persist: true });   // mirror the cache into sessionStorage for this tab
+htmx.query.configure({ crossTab: true });  // propagate invalidation to other tabs in the same namespace
+htmx.query.put('todos', '<li>seeded</li>', { ttl: 60 }); // seed/refresh an entry (hx-swr-key or 'get:/path' form)
 
 document.body.addEventListener('hq:cache', (event) => {
   console.debug(event.detail); // { action: 'hit' | 'miss' | 'store' | 'evict' | 'skip' | 'clear', ... }
@@ -245,6 +256,21 @@ HX-Cache-Invalidate: {"path":"/todos","mode":"path"}
   elements that depend on a transforming extension.
 - Error responses, empty bodies, and responses containing `hx-swap-oob` are
   never cached.
+- `htmx.query.put` stores markup verbatim and it will be swapped into the DOM
+  on the next cache hit. Only seed trusted, server-rendered HTML — never
+  user-supplied strings.
+- Conditional revalidation sends `If-None-Match` when the cached response
+  carried an `ETag`, and falls back to `If-Modified-Since` when it carried only
+  `Last-Modified`. Never both — an `ETag` is the stronger validator.
+- `configure({ persist: true })` writes cached HTML to `sessionStorage`, where
+  any script on the origin can read it for the lifetime of the tab. Set a
+  namespace for per-user content and clear it on sign-out, exactly as you
+  already must for the in-memory cache. Responses marked `no-store` or
+  `private` never enter the cache, so they are never persisted.
+- `configure({ crossTab: true })` sends only `{ namespace, prefix, mode }` over
+  a `BroadcastChannel`; cached HTML never leaves the tab. A received
+  invalidation fires the normal `hq:invalidated` event and is never
+  rebroadcast.
 - Responses with `Cache-Control: no-store` or `private` are never cached.
   Parameterized forms such as `private="Set-Cookie"` are also rejected.
   Responses that vary on request headers other than `HX-Request` are skipped,

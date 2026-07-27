@@ -4,5 +4,6 @@
 * [Dedupe Module](/components/dedupe-module.md) - src/dedupe.js — in-flight registry keyed by cache key; cancels duplicate GETs and serves their targets from cache on settle.
 * [Extension Router](/components/extension-router.md) - src/index.js — registers the "query" htmx extension; onEvent is a thin switch that routes lifecycle events to feature modules.
 * [Optimistic Module](/components/optimistic-module.md) - src/optimistic.js — inserts an hx-optimistic template into the target on beforeRequest, restores the snapshot on beforeSwap or error.
+* [Prefetch Module](/components/prefetch-module.md) - src/prefetch.js — implements the explicit hx-swr-prefetch opt-in that warms the SWR cache without rendering into the source element.
 * [Retry Module](/components/retry-module.md) - src/retry.js — schedules htmx.ajax reissues with exponential backoff after responseError, sendError, or timeout.
 * [SWR Module](/components/swr-module.md) - src/swr.js — serves cached copies on beforeRequest and stores successful GET responses on beforeSwap.

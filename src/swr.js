@@ -82,9 +82,9 @@ function responseVariesByRequestHeader(xhr, elt) {
   }
 }
 
-function responseEtag(xhr) {
+function responseHeader(xhr, name) {
   try {
-    return xhr?.getResponseHeader('ETag') || null;
+    return xhr?.getResponseHeader(name) || null;
   } catch {
     return null;
   }
@@ -103,10 +103,14 @@ function freshness(entry, elt) {
   return { policy, age, effectiveTtl, originTtl, fresh: !policy.noCache && age < effectiveTtl };
 }
 
+/** An ETag is the stronger validator, so Last-Modified is only the fallback. */
 function addValidator(evt, entry) {
-  if (!entry.etag) return;
+  const [header, value] = entry.etag
+    ? ['If-None-Match', entry.etag]
+    : ['If-Modified-Since', entry.lastModified];
+  if (!value) return;
   try {
-    evt.detail.xhr?.setRequestHeader('If-None-Match', entry.etag);
+    evt.detail.xhr?.setRequestHeader(header, value);
   } catch {
     // htmx/browser rejected the late header; continue with a normal revalidation.
   }
@@ -191,7 +195,12 @@ export function storeResponse(evt) {
   const html = d.serverResponse;
   const policy = cacheControl(d.xhr);
   if (!html || html.includes('hx-swap-oob') || !responseAllowsCache(policy) || responseVariesByRequestHeader(d.xhr, requester(evt))) return;
-  cache.set(cacheKey(evt), html, { etag: responseEtag(d.xhr), cacheControl: policy, age: policy.age });
+  cache.set(cacheKey(evt), html, {
+    etag: responseHeader(d.xhr, 'ETag'),
+    lastModified: responseHeader(d.xhr, 'Last-Modified'),
+    cacheControl: policy,
+    age: policy.age,
+  });
 }
 
 /** Requests whose 304 already rendered the validated entry (idempotency guard). */

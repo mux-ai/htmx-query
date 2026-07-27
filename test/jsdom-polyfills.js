@@ -9,6 +9,39 @@ if (proto) {
   };
 }
 
+// jsdom has no IntersectionObserver and never lays elements out, so viewport
+// entry cannot happen on its own. This records what the extension observes and
+// lets a test drive intersection explicitly via window.__intersect(element).
+if (!window.IntersectionObserver) {
+  const observers = new Set();
+  window.IntersectionObserver = class {
+    constructor(callback) {
+      this.callback = callback;
+      this.elements = new Set();
+      observers.add(this);
+    }
+    observe(element) {
+      this.elements.add(element);
+    }
+    unobserve(element) {
+      this.elements.delete(element);
+    }
+    disconnect() {
+      this.elements.clear();
+      observers.delete(this);
+    }
+  };
+  window.__intersect = (element) => {
+    for (const observer of observers) {
+      if (observer.elements.has(element)) {
+        observer.callback([{ target: element, isIntersecting: true }], observer);
+      }
+    }
+  };
+  window.__observedCount = (element) =>
+    [...observers].filter((observer) => observer.elements.has(element)).length;
+}
+
 // jsdom has no CSS.escape; htmx needs it for hx-swap-oob id selectors.
 // Escaping every non-alphanumeric char is stricter than the spec but safe.
 if (!window.CSS) window.CSS = {};

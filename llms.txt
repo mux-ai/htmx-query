@@ -38,7 +38,7 @@ register(htmx);
 | `hx-swr="TTL"` | GET-only cache. Fresh entries render and cancel the request; stale entries render then revalidate. Also opts into dedupe. |
 | `hx-swr-key="key"` | Override cache identity; default is `verb:finalRequestPath`. |
 | `hx-swr-vary="Header, ..."` | Add explicitly approved request-header values to the cache key. `Cookie` and `Authorization` disable caching and dedupe. |
-| `hx-swr-prefetch="hover focus"` | Token list. Explicitly opt into one same-origin best-effort GET that fills the SWR cache without swapping the source element: `hover` for pointer users, `focus` for keyboard users. |
+| `hx-swr-prefetch="hover focus visible"` | Token list. Explicitly opt into one same-origin best-effort GET that fills the SWR cache without swapping the source element: `hover` for pointer users, `focus` for keyboard users, `visible` on viewport entry (IntersectionObserver; inert where unsupported). |
 | `hx-retry="N"` | Retry eligible failures up to N times; the effective maximum is 10. |
 | `hx-retry-delay="ms"` | Retry base delay, default 1000 ms; exponential backoff is capped at 10x base and 30 seconds, with equal jitter. Numeric and HTTP-date Retry-After values override it before the same cap. |
 | `hx-retry-unsafe` | Allow retrying non-GET verbs. |
@@ -56,6 +56,10 @@ htmx.query.debug(); // read-only stats plus cache keys
 htmx.query.resetMetrics(); // reset hit/miss/stale-error counters, keep entries
 htmx.query.setNamespace('account-id'); // scopes new cache keys and clears previous account data
 htmx.query.configure({ cacheEvents: ['evict', 'skip'] }); // true, false, or an action filter
+htmx.query.configure({ cache: { maxEntries, maxCacheBytes, maxEntryBytes, maxVariants } }); // resize cache bounds; invalid fields ignored, shrinking evicts immediately, returns effective limits
+htmx.query.configure({ persist: true }); // opt-in sessionStorage mirror for this tab only; hydrates on enable, writes back on pagehide/hidden; namespace-scoped and dropped on namespace change or clear()
+htmx.query.configure({ crossTab: true }); // opt-in BroadcastChannel propagation of invalidation only (never cached HTML) to same-origin tabs sharing the namespace
+htmx.query.put(key, html, { ttl }); // seed an entry under an hx-swr-key value or 'get:<path>'; namespace-scoped; ttl seconds acts as origin max-age (effective TTL = min(hx-swr, ttl)); returns boolean
 ```
 
 Successful responses may send `HX-Cache-Invalidate` as a JSON object or array,

@@ -49,8 +49,20 @@ describe('cache namespaces and observability', () => {
   });
 
   it('configures cache lifecycle events through the public API', () => {
-    expect(htmx.query.configure({ cacheEvents: ['evict'] })).toEqual({ cacheEvents: ['evict'] });
-    expect(htmx.query.configure({ cacheEvents: false })).toEqual({ cacheEvents: false });
-    expect(htmx.query.configure()).toEqual({ cacheEvents: true });
+    expect(htmx.query.configure({ cacheEvents: ['evict'] }).cacheEvents).toEqual(['evict']);
+    expect(htmx.query.configure({ cacheEvents: false }).cacheEvents).toBe(false);
+    expect(htmx.query.configure().cacheEvents).toBe(true);
+  });
+
+  it('configures cache limits through the public API and reports them read-only otherwise', () => {
+    expect(htmx.query.configure().cache).toMatchObject({
+      maxEntries: 100,
+      maxVariants: 16,
+      maxCacheBytes: 1024 * 1024,
+      maxEntryBytes: 256 * 1024,
+    });
+    expect(htmx.query.configure({ cache: { maxEntries: 200 } }).cache.maxEntries).toBe(200);
+    expect(htmx.query.configure().cache.maxEntries).toBe(200);
+    expect(htmx.query.configure({ cache: { maxEntries: 100 } }).cache.maxEntries).toBe(100);
   });
 });

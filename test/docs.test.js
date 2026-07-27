@@ -23,7 +23,7 @@ describe('documentation surface', () => {
     expect(page).toContain('hq:cache');
     expect(page).toContain('hx-swr-vary');
     expect(page).toContain('1 MiB');
-    expect(page).toContain('hx-swr-prefetch="hover focus"');
+    expect(page).toContain('hx-swr-prefetch="hover focus visible"');
   });
 
   it('links the interactive demo back to the landing page with the shared theme', async () => {
