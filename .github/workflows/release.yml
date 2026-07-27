@@ -14,11 +14,15 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+      # Deliberately no registry-url: it makes setup-node write an .npmrc with
+      # //registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}. With no token (by
+      # design — Trusted Publishing has no token fallback) npm authenticates
+      # with that empty credential instead of performing the OIDC exchange,
+      # and the publish PUT fails as a 404. npm defaults to this registry.
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24
           cache: pnpm
-          registry-url: https://registry.npmjs.org
       - run: pnpm install --frozen-lockfile
       - run: pnpm audit --audit-level high
       - run: pnpm prepublishOnly
