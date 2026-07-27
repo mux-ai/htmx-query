@@ -62,10 +62,10 @@
   </style>
 </head>
 <body>
-  <header><nav class="shell"><a class="brand" href="#top">htmx<span>-query</span></a><div class="links"><a href="#install">Install</a><a href="#examples">Examples</a><a href="#api">API</a><a href="#agents">AI agents</a></div><a class="button" href="/">Live demo ↗</a></nav></header>
+  <header><nav class="shell"><a class="brand" href="#top">htmx<span>-query</span></a><div class="links"><a href="#install">Install</a><a href="#examples">Examples</a><a href="#api">API</a><a href="#agents">AI agents</a></div><a class="button" href="https://github.com/mux-ai/htmx-query#demo">Live demo ↗</a></nav></header>
   <main id="top">
     <div class="shell hero">
-      <div><div class="eyebrow">For htmx 2</div><h1>Server HTML,<br><em>instantly useful.</em></h1><p class="lede">A tiny htmx extension for stale-while-revalidate caching, retries, request deduplication, and optimistic updates—without a client-side data store.</p><div class="actions"><a class="button primary" href="#install">Get started ↓</a><a class="button" href="/">Try the live demo ↗</a></div></div>
+      <div><div class="eyebrow">For htmx 2</div><h1>Server HTML,<br><em>instantly useful.</em></h1><p class="lede">A tiny htmx extension for stale-while-revalidate caching, retries, request deduplication, and optimistic updates—without a client-side data store.</p><div class="actions"><a class="button primary" href="#install">Get started ↓</a><a class="button" href="https://github.com/mux-ai/htmx-query#demo">Run the demo locally ↗</a></div></div>
       <div class="terminal"><div class="terminal-head">your-page.html</div><pre><span class="dim">&lt;!-- one attribute, instant cache --&gt;</span>
 &lt;ul <span class="blue">hx-get</span>=<span class="green">"/todos"</span>
     <span class="blue">hx-trigger</span>=<span class="green">"load"</span>
@@ -110,7 +110,7 @@ htmx.query.stats();               <span class="dim">// cache/dedupe counters and
 htmx.query.setNamespace(<span class="green">'acme'</span>); <span class="dim">// clear old account data, then scope future keys</span>
 document.body.addEventListener(<span class="green">'hq:cache'</span>, observe); <span class="dim">// hit/miss/store/evict/skip/clear</span></pre></div></div><p class="note"><strong>HTTP and account safety:</strong> cached HTML is server-rendered HTML and is reinserted verbatim. <code>Age</code> and <code>Date</code> reduce freshness; <code>Expires</code> provides a TTL when <code>max-age</code> is absent. <code>no-store</code>, <code>private</code>, and unkeyed request-header variation are never retained. An ETag entry revalidates with <code>If-None-Match</code>. Send <code>HX-Cache-Invalidate: {"path":"/todos","mode":"path"}</code> after a mutation to clear matching entries. Call <code>setNamespace(accountId)</code> after account changes.</p></div></section>
 
-    <section id="agents"><div class="shell"><div class="agent"><div><div class="eyebrow">For AI coding agents</div><h2>Give your agent the real rules.</h2><p><code>llms.txt</code> describes the API, invariants, source layout, test commands, and safe modification rules in a compact form. It is the fastest way for an agent to understand this repository before changing it.</p></div><a class="button primary" href="../llms.txt">Open llms.txt ↗</a></div></div></section>
+    <section id="agents"><div class="shell"><div class="agent"><div><div class="eyebrow">For AI coding agents</div><h2>Give your agent the real rules.</h2><p><code>llms.txt</code> describes the API, invariants, source layout, test commands, and safe modification rules in a compact form. It is the fastest way for an agent to understand this repository before changing it.</p></div><a class="button primary" href="https://unpkg.com/htmx-query/llms.txt">Open llms.txt ↗</a></div></div></section>
   </main>
   <footer class="shell"><span>htmx-query · HTML-first query ergonomics</span><span>Run <code>npm run demo</code> for the local interactive demo.</span></footer>
 </body>
