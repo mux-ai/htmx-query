@@ -69,7 +69,7 @@ storage, or rich client-side conflict handling.
 
 ```html
 <script src="https://unpkg.com/htmx.org@2.0.10"></script>
-<script src="https://unpkg.com/htmx-query@0.1.0"></script>
+<script src="https://unpkg.com/htmx-query@0.2.0"></script>
 
 <body hx-ext="query">
   ...

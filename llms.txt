@@ -19,7 +19,7 @@ htmx-query is a small htmx 2 extension that adds opt-in stale-while-revalidate (
 
 ```html
 <script src="https://unpkg.com/htmx.org@2.0.10"></script>
-<script src="https://unpkg.com/htmx-query@0.1.0"></script>
+<script src="https://unpkg.com/htmx-query@0.2.0"></script>
 <body hx-ext="query">...</body>
 ```
 

@@ -1,6 +1,6 @@
 {
   "name": "htmx-query",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "React Query-flavored caching, SWR, retry, dedupe and optimistic updates for htmx 2",
   "repository": {
     "type": "git",

@@ -9,7 +9,7 @@ so use the matching `dist/htmx-query.min.js.sri` value from that release:
 <script src="https://unpkg.com/htmx.org@2.0.10"
         integrity="sha384-REPLACE_WITH_HTMX_2_0_10_VALUE"
         crossorigin="anonymous"></script>
-<script src="https://unpkg.com/htmx-query@0.1.0/dist/htmx-query.min.js"
+<script src="https://unpkg.com/htmx-query@0.2.0/dist/htmx-query.min.js"
         integrity="sha384-REPLACE_WITH_THE_MATCHING_RELEASE_VALUE"
         crossorigin="anonymous"></script>
 <body hx-ext="query">...</body>

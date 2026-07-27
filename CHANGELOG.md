@@ -2,7 +2,7 @@
 
 All notable changes to this project are documented here.
 
-## Unreleased
+## 0.2.0
 
 - Added `htmx.query.put(key, html, { ttl })` for manual cache seeding:
   namespace-scoped, bounded by the normal cache limits, with `ttl` recorded
