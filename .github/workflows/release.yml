@@ -31,29 +31,4 @@ jobs:
       - run: npm run release:verify
         env:
           RELEASE_TAG: ${{ github.event.release.tag_name }}
-      # Temporary diagnostic for the v0.2.0 Trusted Publishing failure. Prints
-      # only the non-secret claims npm presents to the registry so they can be
-      # compared against the configured trusted publisher. The token itself is
-      # never echoed. Remove once publishing succeeds.
-      - name: Show OIDC claims presented to npm
-        run: |
-          set -euo pipefail
-          curl -sS -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
-            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=npm:registry.npmjs.org" \
-            | node -e '
-              let raw = "";
-              process.stdin.on("data", (chunk) => { raw += chunk; });
-              process.stdin.on("end", () => {
-                const token = JSON.parse(raw).value;
-                const claims = JSON.parse(Buffer.from(token.split(".")[1], "base64url").toString());
-                console.log(JSON.stringify({
-                  repository: claims.repository,
-                  workflow_ref: claims.workflow_ref,
-                  job_workflow_ref: claims.job_workflow_ref,
-                  environment: claims.environment ?? "(none)",
-                  ref: claims.ref,
-                  aud: claims.aud,
-                }, null, 2));
-              });
-            '
-      - run: npm publish --provenance --loglevel verbose
+      - run: npm publish --provenance
