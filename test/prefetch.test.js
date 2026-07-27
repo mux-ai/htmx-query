@@ -43,24 +43,40 @@ describe('hx-swr-prefetch', () => {
     expect(net.requests).toHaveLength(0);
     expect(events).toEqual([{ action: 'skip', reason: 'missing-swr', path: '/no-cache' }]);
   });
-});
+  it('prefetches once when an opted-in element scrolls into the viewport', async () => {
+    const el = mount('<a hx-get="/visible" hx-swr="60" hx-swr-prefetch="visible">Open</a>');
+    const events = [];
+    document.body.addEventListener('hq:prefetch', (event) => events.push(event.detail));
 
-describe('hx-swr-prefetch="focus"', () => {
-  it('prefetches on keyboard focus when opted in', async () => {
-    const el = mount('<a href="/k" hx-get="/kbd" hx-swr="60" hx-swr-prefetch="hover focus">Open</a>');
-    el.dispatchEvent(new window.FocusEvent('focusin', { bubbles: true }));
+    window.__intersect(el);
     await tick();
     expect(net.requests).toHaveLength(1);
-    net.respond(0, 200, '<li>kbd</li>');
+    net.respond(0, 200, '<li>prefetched</li>');
     await tick();
-    expect(htmx.query.peek().get('get:/kbd')?.html).toBe('<li>kbd</li>');
-    expect(el.innerHTML).toBe('Open');
+
+    expect(htmx.query.peek().get('get:/visible')?.html).toBe('<li>prefetched</li>');
+    expect(el.innerHTML).toBe('Open'); // never renders into the source element
+    expect(events.map(({ action }) => action)).toEqual(['success']);
+
+    window.__intersect(el);
+    await tick();
+    expect(net.requests).toHaveLength(1); // unobserved after one attempt
   });
 
-  it('hover-only opt-in ignores focus', async () => {
-    const el = mount('<a href="/h" hx-get="/hov" hx-swr="60" hx-swr-prefetch="hover">Open</a>');
-    el.dispatchEvent(new window.FocusEvent('focusin', { bubbles: true }));
+  it('does not observe elements that did not opt into the visible trigger', () => {
+    const el = mount('<a hx-get="/hover-only" hx-swr="60" hx-swr-prefetch="hover">Open</a>');
+    expect(window.__observedCount(el)).toBe(0);
+  });
+  it('observes visible opt-ins that arrive in swapped-in content', async () => {
+    mount('<div hx-get="/page" hx-trigger="load"></div>');
     await tick();
-    expect(net.requests).toHaveLength(0);
+    net.respond(0, 200, '<a id="later" hx-get="/later" hx-swr="60" hx-swr-prefetch="visible">Later</a>');
+    await tick();
+
+    const later = document.querySelector('#later');
+    expect(window.__observedCount(later)).toBe(1);
+    window.__intersect(later);
+    await tick();
+    expect(net.requests).toHaveLength(2);
   });
 });

@@ -86,3 +86,30 @@ test('server invalidation refetches the task list after reorder', async ({ page,
   await expect.poll(() => taskGets).toBe(1);
   await expect(page.locator('#tasks li')).toHaveCount(3);
 });
+
+test('viewport prefetch warms the cache when a below-the-fold link scrolls into view', async ({ page }) => {
+  await page.goto('/');
+  await page.evaluate(() => {
+    const spacer = document.createElement('div');
+    spacer.style.height = '250vh';
+    const link = document.createElement('a');
+    link.id = 'visible-prefetch';
+    link.href = '/etag';
+    link.textContent = 'Prefetch ETag';
+    link.setAttribute('hx-get', '/etag');
+    link.setAttribute('hx-swr', '60');
+    link.setAttribute('hx-swr-prefetch', 'visible');
+    document.body.append(spacer, link);
+    htmx.process(link);
+  });
+
+  // The link is far below the fold, so nothing should have been requested yet.
+  await page.waitForTimeout(150);
+  expect(await page.evaluate(() => htmx.query.peek().has('get:/etag'))).toBe(false);
+
+  const response = page.waitForResponse((item) => new URL(item.url()).pathname === '/etag');
+  await page.locator('#visible-prefetch').scrollIntoViewIfNeeded();
+  await response;
+  await expect(page.locator('#visible-prefetch')).toHaveText('Prefetch ETag');
+  await expect.poll(() => page.evaluate(() => htmx.query.peek().has('get:/etag'))).toBe(true);
+});

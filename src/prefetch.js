@@ -4,6 +4,7 @@ const requests = new WeakSet();
 const reported = new WeakSet();
 const attempted = new WeakSet();
 let installed = false;
+let visibleObserver = null;
 
 export const isPrefetch = (evt) => requests.has(evt.detail.requestConfig);
 
@@ -26,7 +27,7 @@ export function report(evt, outcome) {
   return true;
 }
 
-/** hx-swr-prefetch is a token list: "hover", "focus", or both. */
+/** hx-swr-prefetch is a token list: "hover", "focus", "visible", or any mix. */
 function prefetchTriggers(elt) {
   return new Set((attr(elt, 'hx-swr-prefetch') || '').split(/[\s,]+/).filter(Boolean));
 }
@@ -65,8 +66,25 @@ function prefetch(htmx, elt, trigger) {
 }
 
 /**
+ * Watch opted-in elements for viewport entry. One shared observer; an element
+ * is unobserved as soon as it is attempted, so re-scrolling past it is free.
+ * Without IntersectionObserver the "visible" token is simply inert — a lazy
+ * trigger must never degrade into an eager fetch.
+ */
+function observeVisible(root) {
+  if (!visibleObserver) return;
+  // htmx:load fires on the processed element itself, which querySelectorAll
+  // would not return, so the root is considered alongside its descendants.
+  const candidates = [...(root.querySelectorAll?.('[hx-swr-prefetch]') || [])];
+  if (root.matches?.('[hx-swr-prefetch]')) candidates.push(root);
+  for (const elt of candidates) {
+    if (prefetchTriggers(elt).has('visible') && !attempted.has(elt)) visibleObserver.observe(elt);
+  }
+}
+
+/**
  * Install the explicit, same-origin `hx-swr-prefetch` opt-in.
- * "hover" covers pointer users; "focus" covers keyboard users.
+ * "hover" covers pointer users, "focus" keyboard users, "visible" scrolling.
  */
 export function installPrefetch(htmx) {
   if (installed || typeof document === 'undefined') return;
@@ -77,6 +95,21 @@ export function installPrefetch(htmx) {
   };
   document.addEventListener('pointerenter', handle('hover'), true);
   document.addEventListener('focusin', handle('focus'), true);
+
+  if (typeof IntersectionObserver === 'function') {
+    visibleObserver = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) continue;
+        visibleObserver.unobserve(entry.target);
+        prefetch(htmx, entry.target, 'visible');
+      }
+    });
+  }
+  // htmx:afterProcessNode covers both htmx.process on existing markup and
+  // every later swap, so new opt-ins are picked up without a MutationObserver.
+  // The initial sweep covers content htmx processed before registration.
+  document.addEventListener('htmx:afterProcessNode', (event) => observeVisible(event.target));
+  observeVisible(document);
 }
 
 /** Mark request configs before the extension handles the associated lifecycle event. */

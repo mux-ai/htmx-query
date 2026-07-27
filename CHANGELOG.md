@@ -2,6 +2,27 @@
 
 All notable changes to this project are documented here.
 
+## Unreleased
+
+- Added `htmx.query.put(key, html, { ttl })` for manual cache seeding:
+  namespace-scoped, bounded by the normal cache limits, with `ttl` recorded
+  as an origin `max-age` so effective freshness stays `min(hx-swr, ttl)`.
+- Added runtime-configurable cache bounds via
+  `htmx.query.configure({ cache: { maxEntries, maxCacheBytes, maxEntryBytes,
+  maxVariants } })`; shrinking evicts through the normal eviction path and
+  `configure()` reports the effective limits.
+- Added `If-Modified-Since` revalidation as a fallback for responses that carry
+  `Last-Modified` but no `ETag`.
+- Added a `visible` token to `hx-swr-prefetch`, prefetching on viewport entry
+  through a shared `IntersectionObserver`; inert where unsupported.
+- Added opt-in per-tab cache persistence via `configure({ persist: true })`,
+  mirroring the cache into `sessionStorage` and hydrating through the normal
+  bounded `cache.set` path. Namespace-scoped, and dropped on namespace change
+  or `clear()`.
+- Added opt-in cross-tab invalidation via `configure({ crossTab: true })`.
+  Only invalidation crosses tabs; cached HTML never does.
+- Raised the bundle budget from 5 kB to 7 kB (now 5.8 kB minified + brotli).
+
 ## 0.1.0
 
 - Fixed npm packaging for TypeScript node16 CommonJS consumers (per-format

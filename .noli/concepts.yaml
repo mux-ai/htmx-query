@@ -973,3 +973,191 @@ concepts:
         to: Cache Store
       - predicate: follows
         to: Attribute Driven API
+
+  - type: Architecture Decision
+    title: Manual Cache Seeding
+    description: >-
+      htmx.query.put(key, html, options) writes a rendered HTML fragment
+      into the cache imperatively, closing the setQueryData-shaped gap
+      without introducing a data store.
+    sections:
+      - heading: Decision
+        content: >-
+          put accepts the same key a consumer would use in hx-swr-key (or
+          the implicit "get:<final path>" form), applies the active
+          namespace exactly like request-derived keys, and stores through
+          the same bounded cache.set path, so size limits, eviction,
+          metrics, and hq:cache store events all apply unchanged. An
+          optional ttl option (seconds) is recorded as an origin max-age so
+          effective freshness stays min(hx-swr, ttl); without it the
+          serving element's hx-swr alone governs freshness. put returns
+          true when the entry was stored and false when rejected (oversized
+          value or non-string input). Mutation handlers use it to seed or
+          refresh list caches from a response fragment instead of
+          refetching.
+    relationships:
+      - predicate: applies-to
+        to: Cache Store
+      - predicate: applies-to
+        to: Extension Router
+      - predicate: follows
+        to: Cache Rendered HTML Not Data
+
+  - type: Architecture Decision
+    title: Configurable Cache Bounds
+    description: >-
+      Cache limits (entries, total bytes, per-entry bytes, variants) are
+      runtime-configurable through htmx.query.configure({cache}) instead
+      of hardcoded constants.
+    sections:
+      - heading: Decision
+        content: >-
+          Defaults stay 100 entries, 1 MiB total, 256 KiB per entry, 16
+          hx-select variants. configure({cache: {maxEntries, maxCacheBytes,
+          maxEntryBytes, maxVariants}}) accepts positive finite numbers,
+          ignores invalid values, and returns the effective limits;
+          configure() with no cache key reports them without change.
+          Shrinking limits enforces immediately: entries larger than the
+          new per-entry budget are dropped and the oldest entries are
+          evicted until count and total bytes fit, using the normal
+          eviction path so metrics and hq:cache evict events stay
+          truthful. Exported MAX_* constants remain as the defaults for
+          benchmarks and tests.
+    relationships:
+      - predicate: applies-to
+        to: Cache Store
+      - predicate: applies-to
+        to: Extension Router
+      - predicate: follows
+        to: Expose Bounded Diagnostic Metrics
+
+  - type: Application Component
+    title: Prefetch Module
+    description: >-
+      src/prefetch.js — implements the explicit hx-swr-prefetch opt-in that
+      warms the SWR cache without rendering into the source element.
+    sections:
+      - heading: Responsibility
+        content: >-
+          installPrefetch registers the trigger listeners once; prefetch
+          requests are issued with htmx.ajax under a private
+          htmx-query:prefetch triggering event so the router can recognize
+          and suppress their swap. observePrefetch tags the request config,
+          isPrefetch identifies it later, and report emits a single
+          hq:prefetch success, error, or skip event per request. Guards:
+          same-origin only, hx-swr and hx-get required, Save-Data
+          respected, at most one attempt per element.
+    relationships:
+      - predicate: uses
+        to: Cache Store
+      - predicate: follows
+        to: Keep Cache Prefetch Explicit And Non-Rendering
+
+  - type: Architecture Decision
+    title: Validate With Last Modified
+    description: >-
+      Conditional revalidation falls back to If-Modified-Since when a
+      response carried Last-Modified but no ETag.
+    sections:
+      - heading: Decision
+        content: >-
+          Cache entries retain both etag and lastModified. A revalidating
+          request sends If-None-Match when an ETag exists and
+          If-Modified-Since otherwise, never both, because an ETag is the
+          stronger validator. The Last-Modified value is echoed verbatim as
+          the origin sent it; the client never reformats or reparses the
+          HTTP date. Everything downstream of the 304 is unchanged, so
+          stale rendering, age refresh, and the suppressed empty body work
+          identically for either validator.
+    relationships:
+      - predicate: applies-to
+        to: SWR Module
+      - predicate: applies-to
+        to: Cache Entry
+
+  - type: Architecture Decision
+    title: Prefetch On Viewport Entry
+    description: >-
+      hx-swr-prefetch gains a "visible" token that prefetches when the
+      element scrolls into the viewport.
+    sections:
+      - heading: Decision
+        content: >-
+          A single shared IntersectionObserver watches elements carrying
+          hx-swr-prefetch, added by an initial sweep on install and then on
+          every htmx:afterProcessNode. That event — not htmx:load, which does
+          not fire for htmx.process over existing markup — covers both the
+          first pass and every later swap, so no MutationObserver is needed.
+          The processed node itself is considered alongside its descendants,
+          because querySelectorAll would not return it. Every existing prefetch guard still applies:
+          same-origin only, hx-swr and hx-get required, Save-Data
+          respected, one attempt per element. An element is unobserved once
+          it has been attempted, so scrolling past it repeatedly costs
+          nothing. Environments without IntersectionObserver silently skip
+          the token rather than falling back to an eager fetch.
+    relationships:
+      - predicate: applies-to
+        to: Prefetch Module
+      - predicate: follows
+        to: Keep Cache Prefetch Explicit And Non-Rendering
+
+  - type: Architecture Decision
+    title: Opt In Session Persistence
+    description: >-
+      htmx.query.configure({persist: true}) mirrors the cache into
+      sessionStorage so a full-page navigation can restore it.
+    sections:
+      - heading: Decision
+        content: >-
+          Persistence is off by default and per-tab: sessionStorage, never
+          localStorage, so entries die with the tab and are never shared
+          across tabs or windows. Enabling it hydrates immediately from the
+          record stored under the active namespace, then writes back on
+          pagehide and on visibility change to hidden. Only html, time,
+          etag, lastModified, and cacheControl are serialized; hx-select
+          variants are recomputable and are dropped. Hydration replays
+          entries through the ordinary bounded cache.set path, so current
+          limits, eviction, and metrics apply to restored data exactly as
+          they do to network responses. A malformed or oversized record is
+          discarded rather than repaired. Responses marked no-store or
+          private never reach the cache in the first place, so they cannot
+          be persisted; the persisted record is nevertheless
+          namespace-scoped and cleared whenever the namespace changes.
+      - heading: Security
+        content: >-
+          Persisted HTML is readable by any script on the origin for the
+          lifetime of the tab. Applications rendering per-user content must
+          set a namespace and must clear it on sign-out, exactly as they
+          already must for the in-memory cache.
+    relationships:
+      - predicate: applies-to
+        to: Cache Store
+      - predicate: applies-to
+        to: Extension Router
+      - predicate: depends-on
+        to: Cache Key
+
+  - type: Architecture Decision
+    title: Opt In Cross Tab Invalidation
+    description: >-
+      htmx.query.configure({crossTab: true}) propagates invalidation to
+      other tabs of the same origin and namespace over BroadcastChannel.
+    sections:
+      - heading: Decision
+        content: >-
+          Only invalidation crosses tabs — never cached HTML, which stays
+          per-tab. A local invalidate posts {namespace, prefix, mode} on
+          the "htmx-query" channel; a receiving tab applies it only when
+          the namespace matches its own and never rebroadcasts, so two
+          tabs cannot ping-pong. Received invalidations emit the normal
+          hq:invalidated event, making a remote invalidation
+          indistinguishable from a local one to hx-trigger listeners.
+          Environments without BroadcastChannel accept the option and
+          remain single-tab.
+    relationships:
+      - predicate: applies-to
+        to: Cache Store
+      - predicate: follows
+        to: Observable Invalidation
+      - predicate: depends-on
+        to: Cache Key

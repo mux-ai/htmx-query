@@ -8,7 +8,9 @@ export default [
       ecmaVersion: 'latest',
       sourceType: 'module',
       globals: {
+        BroadcastChannel: 'readonly',
         Buffer: 'readonly',
+        IntersectionObserver: 'readonly',
         URL: 'readonly',
         URLSearchParams: 'readonly',
         CustomEvent: 'readonly',
@@ -20,6 +22,7 @@ export default [
         htmx: 'readonly',
         navigator: 'readonly',
         process: 'readonly',
+        sessionStorage: 'readonly',
         setTimeout: 'readonly',
         window: 'readonly',
       },

@@ -57,8 +57,32 @@ export interface QueryDebug extends QueryStats {
   keys: string[];
 }
 
+export interface CacheLimits {
+  maxEntries: number;
+  maxVariants: number;
+  maxCacheBytes: number;
+  maxEntryBytes: number;
+}
+
 export interface QueryConfig {
   cacheEvents?: boolean | CacheEventAction[];
+  cache?: Partial<CacheLimits>;
+  /** Mirror the cache into sessionStorage for the lifetime of the tab. Off by default. */
+  persist?: boolean;
+  /** Propagate invalidation to other same-origin tabs in the same namespace. Off by default. */
+  crossTab?: boolean;
+}
+
+export interface QueryConfigResult {
+  cacheEvents: boolean | CacheEventAction[];
+  cache: CacheLimits;
+  persist: boolean;
+  crossTab: boolean;
+}
+
+export interface PutOptions {
+  /** Freshness in seconds, recorded as an origin max-age; effective TTL is min(hx-swr, ttl). */
+  ttl?: number;
 }
 
 export interface InvalidationOptions {
@@ -68,12 +92,18 @@ export interface InvalidationOptions {
 export interface QueryApi {
   /** Returns the number of cache entries removed. */
   invalidate(prefix: string, options?: InvalidationOptions): number;
+  /**
+   * Store a rendered HTML fragment under a cache key (an hx-swr-key value or
+   * the implicit "get:<path>" form), scoped to the active namespace. Returns
+   * false when the value is rejected (oversized or non-string input).
+   */
+  put(key: string, html: string, options?: PutOptions): boolean;
   clear(): void;
   peek(): Map<string, unknown>;
   stats(): QueryStats;
   debug(): QueryDebug;
   resetMetrics(): void;
-  configure(options?: QueryConfig): { cacheEvents: boolean | CacheEventAction[] };
+  configure(options?: QueryConfig): QueryConfigResult;
   setNamespace(value: string | null | undefined): string;
 }
 

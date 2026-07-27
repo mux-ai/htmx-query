@@ -5,6 +5,14 @@ export const MAX_VARIANTS = 16;
 export const MAX_CACHE_BYTES = 1024 * 1024;
 export const MAX_ENTRY_BYTES = 256 * 1024;
 
+const DEFAULT_LIMITS = Object.freeze({
+  maxEntries: MAX_ENTRIES,
+  maxVariants: MAX_VARIANTS,
+  maxCacheBytes: MAX_CACHE_BYTES,
+  maxEntryBytes: MAX_ENTRY_BYTES,
+});
+const limits = { ...DEFAULT_LIMITS };
+
 const store = new Map();
 const encoder = new TextEncoder();
 let totalBytes = 0;
@@ -20,6 +28,7 @@ const metrics = {
 };
 const CACHE_EVENT_ACTIONS = new Set(['hit', 'miss', 'store', 'evict', 'skip', 'clear']);
 let cacheEventFilter = null;
+let invalidateObserver = null;
 
 const bytes = (html) => encoder.encode(html).byteLength;
 
@@ -74,15 +83,15 @@ export const cache = {
     return store.get(key);
   },
 
-  set(key, html, { etag = null, cacheControl = {}, age = 0 } = {}) {
+  set(key, html, { etag = null, lastModified = null, cacheControl = {}, age = 0 } = {}) {
     const entryBytes = bytes(html);
     removeEntry(key);
-    if (entryBytes > MAX_ENTRY_BYTES) {
+    if (entryBytes > limits.maxEntryBytes) {
       metrics.skippedEntries += 1;
       emit('skip', { key, reason: 'entry-too-large', bytes: entryBytes });
       return false;
     }
-    while (store.size >= MAX_ENTRIES || totalBytes + entryBytes > MAX_CACHE_BYTES) {
+    while (store.size >= limits.maxEntries || totalBytes + entryBytes > limits.maxCacheBytes) {
       removeEntry(store.keys().next().value, true);
     }
     // Age (or apparent age derived from Date) belongs to the origin response,
@@ -93,6 +102,7 @@ export const cache = {
       time: Date.now() - responseAge * 1000,
       bytes: entryBytes,
       etag,
+      lastModified,
       cacheControl,
       variants: new Map(),
     });
@@ -121,10 +131,10 @@ export const cache = {
     template.innerHTML = entry.html;
     const html = [...template.content.querySelectorAll(selector)].map((node) => node.outerHTML).join('');
     const variant = { html, bytes: bytes(html) };
-    while (entry.variants.size && (entry.variants.size >= MAX_VARIANTS || entry.bytes + variant.bytes > MAX_ENTRY_BYTES)) {
+    while (entry.variants.size && (entry.variants.size >= limits.maxVariants || entry.bytes + variant.bytes > limits.maxEntryBytes)) {
       removeOldestVariant(entry);
     }
-    if (entry.bytes + variant.bytes <= MAX_ENTRY_BYTES && totalBytes + variant.bytes <= MAX_CACHE_BYTES) {
+    if (entry.bytes + variant.bytes <= limits.maxEntryBytes && totalBytes + variant.bytes <= limits.maxCacheBytes) {
       entry.variants.set(selector, variant);
       entry.bytes += variant.bytes;
       totalBytes += variant.bytes;
@@ -161,7 +171,13 @@ export const cache = {
       if (hx?.trigger) hx.trigger(document.body, 'hq:invalidated', detail);
       else document.body.dispatchEvent(new CustomEvent('hq:invalidated', { detail, bubbles: true }));
     }
+    invalidateObserver?.(prefix, mode);
     return count;
+  },
+
+  /** Notified after every invalidation so it can be propagated elsewhere. */
+  setInvalidateObserver(observer) {
+    invalidateObserver = typeof observer === 'function' ? observer : null;
   },
 
   clear() {
@@ -169,6 +185,31 @@ export const cache = {
     store.clear();
     totalBytes = 0;
     emit('clear', { entries });
+  },
+
+  /**
+   * Update cache size limits and report the effective values. Invalid or
+   * missing fields keep their current value. Shrinking enforces immediately
+   * through the normal eviction path so metrics and events stay truthful.
+   */
+  configureLimits(options) {
+    if (options && typeof options === 'object') {
+      for (const name of Object.keys(DEFAULT_LIMITS)) {
+        const value = Number(options[name]);
+        if (Number.isFinite(value) && value >= 1) limits[name] = Math.floor(value);
+      }
+      for (const [key, entry] of [...store]) {
+        if (entry.bytes > limits.maxEntryBytes) removeEntry(key, true);
+      }
+      while (store.size > limits.maxEntries || totalBytes > limits.maxCacheBytes) {
+        removeEntry(store.keys().next().value, true);
+      }
+    }
+    return { ...limits };
+  },
+
+  resetLimits() {
+    Object.assign(limits, DEFAULT_LIMITS);
   },
 
   configureEvents(value) {

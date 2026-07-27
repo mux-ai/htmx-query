@@ -6,6 +6,11 @@ const query = register(htmx);
 query.setNamespace('tenant-a');
 query.invalidate('/todos', { mode: 'path' });
 const removed: number = query.invalidate('/todos');
+const seeded: boolean = query.put('todos', '<li>seeded</li>', { ttl: 60 });
+const limits = query.configure({ cache: { maxEntries: 200 }, persist: true, crossTab: true });
+const maxCacheBytes: number = limits.cache.maxCacheBytes;
+const persisted: boolean = limits.persist;
+const crossTab: boolean = limits.crossTab;
 const stats = query.stats();
 const bytes: number = stats.cache.bytes;
 const hitRate: number = stats.cache.hitRate;
@@ -34,5 +39,9 @@ document.body.addEventListener('hq:prefetch', (event) => {
 
 void eventDetail;
 void removed;
+void seeded;
+void maxCacheBytes;
+void persisted;
+void crossTab;
 void hitRate;
 void debugKeys;

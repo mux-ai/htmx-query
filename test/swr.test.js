@@ -246,6 +246,44 @@ describe('hx-swr', () => {
     expect(net.requests).toHaveLength(2); // 304 refreshed its age; fresh hit cancels the request
   });
 
+  it('falls back to If-Modified-Since when a stale entry has no ETag', async () => {
+    const modified = 'Wed, 21 Oct 2015 07:28:00 GMT';
+    const el = mount('<div hx-get="/modified" hx-trigger="load, refresh" hx-swr="60"></div>');
+    await tick();
+    net.respond(0, 200, '<li>v1</li>', { 'Last-Modified': modified });
+    await tick();
+    htmx.query.peek().get('get:/modified').time = 0; // make the retained entry stale
+
+    htmx.trigger(el, 'refresh');
+    await tick();
+    expect(net.requests).toHaveLength(2);
+    const headers = net.requests[1].requestHeaders;
+    const sent = (name) => Object.entries(headers).find(([header]) => header.toLowerCase() === name)?.[1];
+    expect(sent('if-modified-since')).toBe(modified);
+    expect(sent('if-none-match')).toBeUndefined();
+
+    net.respond(1, 304, '', { 'Last-Modified': modified });
+    await tick();
+    expect(el.innerHTML).toBe('<li>v1</li>');
+  });
+
+  it('prefers the ETag when a response carries both validators', async () => {
+    const el = mount('<div hx-get="/both" hx-trigger="load, refresh" hx-swr="60"></div>');
+    await tick();
+    net.respond(0, 200, '<li>v1</li>', { ETag: '"v1"', 'Last-Modified': 'Wed, 21 Oct 2015 07:28:00 GMT' });
+    await tick();
+    htmx.query.peek().get('get:/both').time = 0;
+
+    htmx.trigger(el, 'refresh');
+    await tick();
+    const headers = net.requests[1].requestHeaders;
+    const sent = (name) => Object.entries(headers).find(([header]) => header.toLowerCase() === name)?.[1];
+    expect(sent('if-none-match')).toBe('"v1"');
+    expect(sent('if-modified-since')).toBeUndefined();
+    net.respond(1, 304, '', { ETag: '"v1"' });
+    await tick();
+  });
+
   it('does not touch elements without hx-swr', async () => {
     const el = mount('<div hx-get="/plain" hx-trigger="load, refresh"></div>');
     await tick();
