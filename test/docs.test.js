@@ -14,7 +14,7 @@ describe('documentation surface', () => {
     expect(page).toContain('hx-retry');
     expect(page).toContain('hx-optimistic');
     expect(page).toContain('llms.txt');
-    expect(page).toContain('Try the live demo');
+    expect(page).toContain('Run the demo locally');
     expect(page).toContain('htmx.org@2.0.10');
     expect(page).toContain('103/103');
     expect(page).toContain('4.75 kB');
