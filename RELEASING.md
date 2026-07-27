@@ -16,6 +16,18 @@ fail closed.
 3. On npmjs.com, configure **Trusted Publishing** for `htmx-query`: bind this
    GitHub repository and the release workflow as the trusted publisher. From
    the second release on there is deliberately no token fallback.
+   The binding must live on the **package** (npmjs.com → `htmx-query` →
+   Settings → Trusted Publisher), not on the owning user or organization —
+   npm exchanges the OIDC token per package. Enter owner `mux-ai`, repository
+   `htmx-query`, workflow `release.yml`, and leave **Environment blank**; the
+   publish job declares no `environment:`, so any value there fails the claim
+   match. When the binding is missing the registry answers the exchange with
+   `404 … OIDC token exchange error - package not found`, which surfaces only
+   as `ENEEDAUTH` unless `npm publish` is run with `--loglevel verbose`.
+   Do not add `registry-url:` to `actions/setup-node` in the publish job: it
+   writes an `.npmrc` containing `${NODE_AUTH_TOKEN}`, which never resolves
+   here, and npm then authenticates with that empty credential instead of
+   using OIDC.
 4. Note the toolchain floor baked into `release.yml`: Node 24 (bundles npm >=
    11.5.1, required for Trusted Publishing). Do not lower `node-version`
    below 24 in the publish job. Local installs use the `packageManager`
