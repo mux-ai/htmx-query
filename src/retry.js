@@ -1,6 +1,7 @@
 import { attr, hx, isGet, requester } from './utils.js';
 
 const attempts = new WeakMap();
+const timers = new WeakMap();
 const retryingXhrs = new WeakSet();
 const requestContexts = new WeakMap();
 const retryEvents = new WeakSet();
@@ -40,8 +41,20 @@ export function isRetrying(evt) {
   return retryingXhrs.has(evt.detail.xhr);
 }
 
+function clearTimer(elt, key) {
+  const pending = timers.get(elt);
+  if (!pending) return;
+  const id = pending.get(key);
+  if (id === undefined) return;
+  clearTimeout(id);
+  pending.delete(key);
+  if (pending.size === 0) timers.delete(elt);
+}
+
 export function reset(evt) {
   const context = requestContexts.get(evt.detail.xhr) || requestContext(evt);
+  // A success makes any still-pending retry for the same request moot.
+  clearTimer(context.elt, context.key);
   const values = attempts.get(context.elt);
   if (!values) return;
   values.delete(context.key);
@@ -94,7 +107,14 @@ export function maybeRetry(evt) {
   values.set(context.key, n);
 
   const delay = retryDelay(elt, d.xhr, n);
-  setTimeout(() => {
+  clearTimer(elt, context.key);
+  let pending = timers.get(elt);
+  if (!pending) {
+    pending = new Map();
+    timers.set(elt, pending);
+  }
+  pending.set(context.key, setTimeout(() => {
+    clearTimer(elt, context.key);
     if (!document.contains(elt)) {
       values.delete(context.key);
       if (values.size === 0) attempts.delete(elt);
@@ -103,5 +123,5 @@ export function maybeRetry(evt) {
     const event = new CustomEvent('htmx-query:retry');
     retryEvents.add(event);
     hx.ajax(context.verb, context.path, { source: elt, target: context.target, event });
-  }, delay);
+  }, delay));
 }

@@ -24,6 +24,7 @@ export default [
         process: 'readonly',
         sessionStorage: 'readonly',
         setTimeout: 'readonly',
+        clearTimeout: 'readonly',
         window: 'readonly',
       },
     },

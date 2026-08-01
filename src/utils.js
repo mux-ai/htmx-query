@@ -18,21 +18,24 @@ export function attr(elt, name) {
  * hx-select: data-hx- fallback, "unset" termination, hx-disinherit blocking,
  * and hx-inherit allow-listing when htmx.config.disableInheritance is on.
  */
+const readAttr = (node, attrName) => {
+  const direct = node.getAttribute(attrName);
+  return direct !== null ? direct : node.getAttribute(`data-${attrName}`);
+};
+const listsAttr = (value, name) => value === '*' || value.split(/\s+/).includes(name);
+
 export function closestAttr(elt, name) {
-  const read = (node, attrName) => {
-    const direct = node.getAttribute(attrName);
-    return direct !== null ? direct : node.getAttribute(`data-${attrName}`);
-  };
-  const listed = (value) => value === '*' || value.split(/\s+/).includes(name);
   for (let node = elt; node && node.getAttribute; node = node.parentElement) {
-    let value = read(node, name);
+    let value = readAttr(node, name);
     if (node !== elt) {
       if (hx?.config?.disableInheritance) {
-        const inherit = read(node, 'hx-inherit');
-        if (!(inherit && listed(inherit))) value = null;
+        if (value !== null) {
+          const inherit = readAttr(node, 'hx-inherit');
+          if (!(inherit && listsAttr(inherit, name))) value = null;
+        }
       } else {
-        const disinherit = read(node, 'hx-disinherit');
-        if (disinherit && listed(disinherit)) value = 'unset';
+        const disinherit = readAttr(node, 'hx-disinherit');
+        if (disinherit && listsAttr(disinherit, name)) value = 'unset';
       }
     }
     if (value !== null) return value === 'unset' ? null : value;
@@ -55,10 +58,19 @@ export function requester(evt) {
   return (config && config.elt) || evt.detail.elt;
 }
 
+// varyHeaders runs up to three times per request (key, allow-gate, response
+// vary check) on the same attribute string, so the last parse is reused.
+let lastVaryValue = null;
+let lastVaryResult = [];
+
 export function varyHeaders(elt) {
   const value = attr(elt, 'hx-swr-vary');
   if (!value) return [];
-  return [...new Set(value.split(',').map((header) => header.trim().toLowerCase()).filter(Boolean))];
+  if (value !== lastVaryValue) {
+    lastVaryValue = value;
+    lastVaryResult = [...new Set(value.split(',').map((header) => header.trim().toLowerCase()).filter(Boolean))];
+  }
+  return lastVaryResult;
 }
 
 export function cacheRequestAllowed(evt) {

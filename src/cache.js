@@ -29,6 +29,7 @@ const metrics = {
 const CACHE_EVENT_ACTIONS = new Set(['hit', 'miss', 'store', 'evict', 'skip', 'clear']);
 let cacheEventFilter = null;
 let invalidateObserver = null;
+let revision = 0;
 
 const bytes = (html) => encoder.encode(html).byteLength;
 
@@ -51,6 +52,7 @@ function removeEntry(key, evicted = false) {
   if (!entry) return;
   totalBytes -= entry.bytes;
   store.delete(key);
+  revision += 1;
   if (evicted) {
     metrics.evictions += 1;
     emit('evict', { key, bytes: entry.bytes });
@@ -101,12 +103,14 @@ export const cache = {
       html,
       time: Date.now() - responseAge * 1000,
       bytes: entryBytes,
+      path: pathForKey(key),
       etag,
       lastModified,
       cacheControl,
       variants: new Map(),
     });
     totalBytes += entryBytes;
+    revision += 1;
     metrics.stores += 1;
     emit('store', { key, bytes: entryBytes });
     return true;
@@ -149,14 +153,15 @@ export const cache = {
     const entry = store.get(key);
     if (!entry) return false;
     entry.time = Date.now();
+    revision += 1;
     return true;
   },
 
   /** Drop entries by backwards-compatible substring or a resource-path boundary. */
   invalidate(prefix, { mode = 'contains' } = {}) {
     let count = 0;
-    for (const key of [...store.keys()]) {
-      const path = pathForKey(key);
+    for (const [key, entry] of [...store]) {
+      const path = entry.path;
       const matchesPath = path === prefix || path.startsWith(`${prefix}/`) || path.startsWith(`${prefix}?`);
       if (mode === 'path' ? matchesPath : key.includes(prefix)) {
         removeEntry(key);
@@ -184,7 +189,13 @@ export const cache = {
     const entries = store.size;
     store.clear();
     totalBytes = 0;
+    revision += 1;
     emit('clear', { entries });
+  },
+
+  /** Monotonic mutation counter so mirrors can skip writes when nothing changed. */
+  revision() {
+    return revision;
   },
 
   /**

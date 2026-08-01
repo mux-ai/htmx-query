@@ -99,7 +99,12 @@ export function installPrefetch(htmx) {
   if (typeof IntersectionObserver === 'function') {
     visibleObserver = new IntersectionObserver((entries) => {
       for (const entry of entries) {
-        if (!entry.isIntersecting) continue;
+        if (!entry.isIntersecting) {
+          // Removal from the DOM reports as a non-intersection; release the
+          // element instead of observing it forever.
+          if (!entry.target.isConnected) visibleObserver.unobserve(entry.target);
+          continue;
+        }
         visibleObserver.unobserve(entry.target);
         prefetch(htmx, entry.target, 'visible');
       }

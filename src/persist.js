@@ -7,6 +7,9 @@ let installed = false;
 
 const storageKey = () => `${PREFIX}::${getNamespace()}`;
 
+let savedRevision = -1;
+let savedKey = null;
+
 /** sessionStorage throws in private modes and when the quota is exhausted. */
 function storage() {
   try {
@@ -38,8 +41,16 @@ function serialize() {
 export function save() {
   const store = storage();
   if (!enabled || !store) return false;
+  const key = storageKey();
+  // Serializing the whole cache is the expensive part of the mirror, and save
+  // runs on every visibilitychange. Skip it when nothing changed since the
+  // last successful write to this key.
+  if (key === savedKey && cache.revision() === savedRevision) return true;
+  const revision = cache.revision();
   try {
-    store.setItem(storageKey(), JSON.stringify(serialize()));
+    store.setItem(key, JSON.stringify(serialize()));
+    savedKey = key;
+    savedRevision = revision;
     return true;
   } catch {
     // Quota exceeded or storage disabled mid-session: the in-memory cache is
@@ -80,6 +91,8 @@ export function hydrate() {
 }
 
 export function drop() {
+  savedKey = null;
+  savedRevision = -1;
   const store = storage();
   if (!store) return;
   try {
