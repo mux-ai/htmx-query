@@ -8,7 +8,7 @@
 version: 1
 project:
   name: htmx-query
-  description: React Query-flavored caching, SWR, retry, dedupe and optimistic updates as an htmx 2 extension.
+  description: React Query-flavored caching, SWR, retry, dedupe and optimistic updates for htmx 2 and 4.
 knowledge:
   root: knowledge
 concept_types:

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="htmx-query adds cache, stale-while-revalidate, retry, dedupe, and optimistic updates to htmx 2 with HTML attributes.">
+  <meta name="description" content="htmx-query adds cache, stale-while-revalidate, retry, dedupe, and optimistic updates to htmx 2 and 4 with HTML attributes.">
   <title>htmx-query — useful server HTML, instantly</title>
   <style nonce="__CSP_NONCE__">
     :root { color-scheme: dark; --ink: #edf4ff; --muted: #a9b7cc; --line: #24344d; --panel: #101b2d; --blue: #77aaff; --mint: #64e2b7; --orange: #ffc36f; }
@@ -65,7 +65,7 @@
   <header><nav class="shell"><a class="brand" href="#top">htmx<span>-query</span></a><div class="links"><a href="#install">Install</a><a href="#examples">Examples</a><a href="#api">API</a><a href="#agents">AI agents</a></div><a class="button" href="https://github.com/mux-ai/htmx-query#demo">Live demo ↗</a></nav></header>
   <main id="top">
     <div class="shell hero">
-      <div><div class="eyebrow">For htmx 2</div><h1>Server HTML,<br><em>instantly useful.</em></h1><p class="lede">A tiny htmx extension for stale-while-revalidate caching, retries, request deduplication, and optimistic updates—without a client-side data store.</p><div class="actions"><a class="button primary" href="#install">Get started ↓</a><a class="button" href="https://github.com/mux-ai/htmx-query#demo">Run the demo locally ↗</a></div></div>
+      <div><div class="eyebrow">For htmx 2 + 4</div><h1>Server HTML,<br><em>instantly useful.</em></h1><p class="lede">A tiny htmx extension for stale-while-revalidate caching, retries, request deduplication, and optimistic updates—without a client-side data store.</p><div class="actions"><a class="button primary" href="#install">Get started ↓</a><a class="button" href="https://github.com/mux-ai/htmx-query#demo">Run the demo locally ↗</a></div></div>
       <div class="terminal"><div class="terminal-head">your-page.html</div><pre><span class="dim">&lt;!-- one attribute, instant cache --&gt;</span>
 &lt;ul <span class="blue">hx-get</span>=<span class="green">"/todos"</span>
     <span class="blue">hx-trigger</span>=<span class="green">"load"</span>
@@ -75,16 +75,16 @@
 <span class="dim">// Cached for 30s. Stale content appears
 // immediately while htmx refreshes it.</span></pre></div>
     </div>
-    <div class="shell proof"><div><strong>4.75 kB</strong><span>minified + brotli</span></div><div><strong>103/103</strong><span>integration tests</span></div><div><strong>12</strong><span>real-browser runs · 3 engines</span></div><div><strong>1 MiB</strong><span>maximum cache memory</span></div></div>
+    <div class="shell proof"><div><strong>7.13 kB</strong><span>minified + brotli</span></div><div><strong>134/134</strong><span>integration tests</span></div><div><strong>9</strong><span>browser/version runs · 3 engines</span></div><div><strong>1 MiB</strong><span>maximum cache memory</span></div></div>
 
     <section id="why"><div class="shell"><div class="eyebrow">Why htmx-query</div><h2>The parts you reach for after the first htmx page.</h2><p class="section-intro">Keep server-rendered HTML and htmx’s request model. Add the response-handling conveniences that make interfaces feel immediate and resilient.</p><div class="grid"><article class="card"><div class="icon">↻</div><h3>Stale while revalidate</h3><p>Render a cached fragment immediately, then quietly refresh it when it becomes stale.</p></article><article class="card"><div class="icon">↯</div><h3>Safe retries</h3><p>Retry GETs with exponential backoff. Unsafe verbs require an explicit opt-in.</p></article><article class="card"><div class="icon">≡</div><h3>One request, many targets</h3><p>Collapse identical in-flight GETs; each target renders when the winner lands.</p></article><article class="card"><div class="icon">+</div><h3>Optimistic HTML</h3><p>Append a developer-authored pending template and remove only its nodes on failure.</p></article><article class="card"><div class="icon">⌁</div><h3>Native htmx behavior</h3><p>Cached swaps preserve <code>hx-swap</code> and <code>hx-select</code> behavior.</p></article><article class="card"><div class="icon">□</div><h3>No data layer</h3><p>No JSON cache, client store, offline queue, or SPA rewrite. Just rendered HTML.</p></article></div></div></section>
 
-    <section id="install"><div class="shell"><div class="eyebrow">Install</div><h2>Two scripts. One extension.</h2><div class="install"><ol class="steps"><li><strong>Load htmx 2</strong>htmx-query supports <code>htmx.org &gt;=2.0.0 &lt;3</code>.</li><li><strong>Load htmx-query</strong>The CDN build self-registers when <code>window.htmx</code> exists.</li><li><strong>Enable the extension</strong>Add <code>hx-ext="query"</code> to your body or a smaller subtree.</li></ol><div class="code"><pre><span class="orange">&lt;script</span> src=<span class="green">"https://unpkg.com/htmx.org@2.0.10"</span><span class="orange">&gt;&lt;/script&gt;</span>
+    <section id="install"><div class="shell"><div class="eyebrow">Install</div><h2>Two scripts. One extension.</h2><div class="install"><ol class="steps"><li><strong>Load htmx 2 or 4</strong>Supports <code>&gt;=2.0.0 &lt;3 || &gt;=4.0.0-beta6 &lt;5</code>.</li><li><strong>Load htmx-query</strong>The CDN build self-registers when <code>window.htmx</code> exists.</li><li><strong>Activate when needed</strong>htmx 4 extensions are global; only htmx 2 needs <code>hx-ext="query"</code>.</li></ol><div class="code"><pre><span class="orange">&lt;script</span> src=<span class="green">"https://unpkg.com/htmx.org@4.0.0-beta6"</span><span class="orange">&gt;&lt;/script&gt;</span>
 <span class="orange">&lt;script</span> src=<span class="green">"https://unpkg.com/htmx-query@0.2.0"</span><span class="orange">&gt;&lt;/script&gt;</span>
 
-<span class="orange">&lt;body</span> <span class="blue">hx-ext</span>=<span class="green">"query"</span><span class="orange">&gt;</span>
+<span class="orange">&lt;body&gt;</span>
   ...
-<span class="orange">&lt;/body&gt;</span></pre></div></div><p class="note"><strong>Production:</strong> pin exact CDN versions and add Subresource Integrity hashes. Floating versions cannot be integrity-checked.</p><div class="example"><div class="example-copy"><div class="tag">Bundlers</div><h3>Register explicitly</h3><p>Use the ESM build when htmx is supplied by your bundler.</p></div><div class="code"><pre><span class="blue">import</span> htmx <span class="blue">from</span> <span class="green">'htmx.org'</span>;
+<span class="orange">&lt;/body&gt;</span></pre></div></div><p class="note"><strong>htmx 2:</strong> use <code>htmx.org@2.0.10</code> and add <code>hx-ext="query"</code>. <strong>Production:</strong> pin exact CDN versions and add Subresource Integrity hashes. Floating versions cannot be integrity-checked.</p><div class="example"><div class="example-copy"><div class="tag">Bundlers</div><h3>Register explicitly</h3><p>Use the ESM build when htmx is supplied by your bundler.</p></div><div class="code"><pre><span class="blue">import</span> htmx <span class="blue">from</span> <span class="green">'htmx.org'</span>;
 <span class="blue">import</span> { register } <span class="blue">from</span> <span class="green">'htmx-query'</span>;
 
 register(htmx);</pre></div></div></div></section>

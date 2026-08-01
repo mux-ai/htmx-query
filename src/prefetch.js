@@ -1,4 +1,5 @@
 import { attr } from './utils.js';
+import { isHtmx4 } from './htmx-adapter.js';
 
 const requests = new WeakSet();
 const reported = new WeakSet();
@@ -110,10 +111,11 @@ export function installPrefetch(htmx) {
       }
     });
   }
-  // htmx:afterProcessNode covers both htmx.process on existing markup and
+  // The process-complete event covers htmx.process on existing markup and
   // every later swap, so new opt-ins are picked up without a MutationObserver.
   // The initial sweep covers content htmx processed before registration.
-  document.addEventListener('htmx:afterProcessNode', (event) => observeVisible(event.target));
+  const processEvent = isHtmx4(htmx) ? 'htmx:after:process' : 'htmx:afterProcessNode';
+  document.addEventListener(processEvent, (event) => observeVisible(event.target));
   observeVisible(document);
 }
 

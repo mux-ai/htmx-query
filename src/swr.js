@@ -1,5 +1,5 @@
 import { cache } from './cache.js';
-import { attr, cacheKey, cacheRequestAllowed, closestAttr, isGet, requester, swapCached, varyHeaders } from './utils.js';
+import { attr, cacheKey, cacheRequestAllowed, isGet, requester, requestSelect, swapCached, varyHeaders } from './utils.js';
 import { isRetrying } from './retry.js';
 
 const staleRendered = new WeakSet();
@@ -144,7 +144,7 @@ export function serveFromCache(evt) {
     addValidator(evt, entry);
     return false;
   }
-  const selected = cache.selected(entry, closestAttr(elt, 'hx-select'));
+  const selected = cache.selected(entry, requestSelect(evt));
   swapCached(evt, selected.html, selected.selected);
   if (!fresh) {
     staleRendered.add(evt.detail.requestConfig);
@@ -212,18 +212,18 @@ const notModifiedRendered = new WeakSet();
  * stale-while-revalidate window), the validated entry must be swapped in now —
  * otherwise the suppressed empty 304 body would leave the target unrendered.
  */
-export function refreshNotModified(evt) {
+export function refreshNotModified(evt, render = true) {
   const d = evt.detail;
   const elt = requester(evt);
   if (!isGet(evt) || d.xhr?.status !== 304 || attr(elt, 'hx-swr') === null) return false;
   const key = cacheKey(evt);
   if (!cache.refresh(key)) return false;
   const config = d.requestConfig;
-  if (config && !staleRendered.has(config) && !notModifiedRendered.has(config)) {
+  if (render && config && !staleRendered.has(config) && !notModifiedRendered.has(config)) {
     notModifiedRendered.add(config);
     const entry = cache.entry(key);
     if (entry) {
-      const selected = cache.selected(entry, closestAttr(elt, 'hx-select'));
+      const selected = cache.selected(entry, requestSelect(evt));
       swapCached(evt, selected.html, selected.selected);
     }
   }

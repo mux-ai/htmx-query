@@ -6,7 +6,7 @@ description: A duplicate in-flight GET (same cache key, hx-swr element) is cance
 
 ## Rule
 
-Waiters removed from the document before landing are skipped. Failure drops waiters silently: their next trigger (polling, invalidation) recovers them. A winner also observes its XHR failure directly, so removal from the document cannot prevent cleanup. Settling is idempotent because the in-flight registry entry is deleted on first settle.
+Waiters removed from the document before landing are skipped. Failure drops waiters silently: their next trigger (polling, invalidation) recovers them. Transport-finalization hooks clean up a winner even when its requesting element has left the document. Settling is idempotent because the in-flight registry entry is deleted on first settle.
 
 ## Relationships
 

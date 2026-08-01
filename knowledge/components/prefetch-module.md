@@ -6,7 +6,7 @@ description: src/prefetch.js — implements the explicit hx-swr-prefetch opt-in 
 
 ## Responsibility
 
-installPrefetch registers the trigger listeners once; prefetch requests are issued with htmx.ajax under a private htmx-query:prefetch triggering event so the router can recognize and suppress their swap. observePrefetch tags the request config, isPrefetch identifies it later, and report emits a single hq:prefetch success, error, or skip event per request. Guards: same-origin only, hx-swr and hx-get required, Save-Data respected, at most one attempt per element.
+installPrefetch registers the trigger listeners once; prefetch requests are issued with htmx.ajax under a private htmx-query:prefetch triggering event so the router can recognize and suppress their swap. observePrefetch tags the normalized request identity, isPrefetch identifies it later, and report emits a single hq:prefetch success, error, or skip event per request. Guards: same-origin only, hx-swr and hx-get required, Save-Data respected, at most one attempt per element.
 
 ## Relationships
 

@@ -12,6 +12,7 @@ yarn-debug.log*
 *.tgz
 .DS_Store
 .noli/write.lock
+.noli/preview/
 .pnp
 .pnp.js
 .next/

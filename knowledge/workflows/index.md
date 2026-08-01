@@ -4,6 +4,7 @@
 * [Conditionally Revalidate Cached HTML](/workflows/conditionally-revalidate-cached-html.md) - A stale response with an ETag is rendered immediately and revalidated with If-None-Match; a 304 refreshes freshness without retransferring or reparsing HTML.
 * [Invalidate And Refetch](/workflows/invalidate-and-refetch.md) - htmx.query.invalidate(prefix) drops matching entries and fires hq:invalidated; elements listening via hx-trigger refetch, and non-matching listeners short-circuit on their still-fresh cache.
 * [Invalidate From Server Response](/workflows/invalidate-from-server-response.md) - A successful htmx response can declare cache paths to invalidate without page-specific JavaScript.
+* [Migrate From htmx 2 To 4](/workflows/migrate-from-htmx-2-to-4.md) - Applications upgrade htmx-query independently from htmx, then move to htmx 4 through a reversible compatibility checklist.
 * [Persist Drag Reorder](/workflows/persist-drag-reorder.md) - A native drag-and-drop interaction reorders task rows immediately, persists the resulting ordered IDs through htmx, and reconciles cached task lists after the server accepts the mutation.
 * [Report Stale Revalidation Failure](/workflows/report-stale-revalidation-failure.md) - When a stale fragment has rendered and its background revalidation fails, applications receive a single event without losing the fragment.
 * [Retry With Backoff](/workflows/retry-with-backoff.md) - Failed eligible request schedules a delayed htmx.ajax reissue; success resets counters, exhaustion fires hq:retryExhausted.

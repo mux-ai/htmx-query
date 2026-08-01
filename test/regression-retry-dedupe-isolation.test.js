@@ -25,6 +25,7 @@ describe('retry and dedupe isolation', () => {
     expect(net.requests.length).toBe(1); // A's initial request
 
     net.respond(0, 500, 'boom'); // A fails -> retry scheduled in 20ms
+    await tick(1); // Fetch completion is asynchronous under htmx 4.
     htmx.trigger(b, 'go'); // B issues an identical GET immediately
     await tick();
     expect(net.requests.length).toBe(3); // B and A's scheduled retry both fly

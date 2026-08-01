@@ -93,17 +93,45 @@ export function cacheKey(evt) {
   return scopedKey(vary ? `${key}|vary:${vary}` : key);
 }
 
+export function requestSelect(evt) {
+  if (!evt?.htmx4) return closestAttr(requester(evt), 'hx-select');
+  const configured = evt.detail.requestConfig.select;
+  if (configured) return configured;
+  // htmx 4 makes inheritance explicit with the :inherited meta attribute.
+  for (let node = requester(evt)?.parentElement; node?.getAttribute; node = node.parentElement) {
+    const inherited = node.getAttribute('hx-select:inherited') ??
+      node.getAttribute('data-hx-select:inherited');
+    if (inherited !== null) {
+      const value = node.getAttribute('hx-select') ?? inherited;
+      return value === 'unset' ? null : value;
+    }
+  }
+  return null;
+}
+
 /** Swap cached html into the event's target, honoring the requester's htmx attributes. */
 export function swapCached(evt, html, alreadySelected = false) {
   const d = evt.detail;
   const elt = requester(evt);
   const target = d.target || d.elt;
-  const swapAttr = attr(elt, 'hx-swap');
+  const swapAttr = evt?.htmx4 ? d.requestConfig.swap : attr(elt, 'hx-swap');
   const swapStyle = swapAttr ? swapAttr.split(' ')[0] : 'innerHTML';
+  const select = alreadySelected ? null : requestSelect(evt);
+  if (evt?.htmx4) {
+    const context = {
+      text: html,
+      target,
+      swap: swapStyle,
+      select,
+      sourceElement: elt,
+      htmxQueryCachedSwap: true,
+    };
+    return hx.swap(context);
+  }
   hx.swap(
     target,
     html,
     { swapStyle, swapDelay: 0, settleDelay: 0 },
-    { select: alreadySelected ? null : closestAttr(elt, 'hx-select'), contextElement: elt }
+    { select, contextElement: elt }
   );
 }

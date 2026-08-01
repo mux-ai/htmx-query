@@ -6,7 +6,7 @@ description: JSDOM verifies fast unit and integration behavior; Playwright verif
 
 ## Decision
 
-Browser tests start and own an isolated local demo server in Chromium, Firefox, and WebKit for every supported htmx 2.x CI matrix version. They cover only workflows whose semantics depend on a real browser, including conditional ETag revalidation and the empty-304 swap edge case, so the default test suite remains fast and deterministic.
+Browser tests start and own an isolated local demo server in Chromium, Firefox, and WebKit for representative supported htmx 2 and htmx 4 CI matrix versions. They cover only workflows whose semantics depend on a real browser, including conditional ETag revalidation and the empty-304 swap edge case, so the default test suite remains fast and deterministic.
 
 ## Relationships
 

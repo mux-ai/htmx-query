@@ -16,8 +16,8 @@ describe('documentation surface', () => {
     expect(page).toContain('llms.txt');
     expect(page).toContain('Run the demo locally');
     expect(page).toContain('htmx.org@2.0.10');
-    expect(page).toContain('103/103');
-    expect(page).toContain('4.75 kB');
+    expect(page).toContain('134/134');
+    expect(page).toContain('7.13 kB');
     expect(page).toContain('setNamespace');
     expect(page).toContain('If-None-Match');
     expect(page).toContain('hq:cache');
@@ -30,9 +30,9 @@ describe('documentation surface', () => {
     const demo = await readProjectFile('examples/demo.html');
     expect(demo).toContain('href="/docs"');
     expect(demo).toContain('--mint: #64e2b7');
-    expect(demo).toContain('hx-ext="query"');
-    expect(demo).toContain('/htmx.js?v=2.0.10');
-    expect(demo).toContain('/htmx-query.js?v=0.1.0');
+    expect(demo).toContain("setAttribute('hx-ext', 'query')");
+    expect(demo).toContain('/htmx.js?v=4.0.0-beta6');
+    expect(demo).toContain('/htmx-query.js?v=0.2.0');
     expect(demo).toContain('/tasks/reorder');
     expect(demo).toContain('How to verify:');
     expect(demo).toContain('<summary>Show code</summary>');
@@ -93,5 +93,23 @@ describe('documentation surface', () => {
     expect(production).toContain('HX-Cache-Invalidate');
     expect(releasing).toContain('Trusted Publishing');
     expect(releasing).toContain('release:verify');
+  });
+
+  it('ships a staged and reversible htmx 4 migration guide', async () => {
+    const guide = await readProjectFile('docs/migrating-to-htmx-4.md');
+    const readme = await readProjectFile('README.md');
+    const changelog = await readProjectFile('CHANGELOG.md');
+
+    expect(guide).toContain('htmx.org >=2.0.0 <3');
+    expect(guide).toContain('4.0.0-beta6');
+    expect(guide).toContain('hx-ext="query"');
+    expect(guide).toContain('htmx:after:request');
+    expect(guide).toContain('event.detail.ctx.response.status');
+    expect(guide).toContain('hx-select:inherited');
+    expect(guide).toContain('htmx.config.defaultTimeout');
+    expect(guide).toContain('upgrade-check');
+    expect(guide).toContain('## Rollback');
+    expect(readme).toContain('docs/migrating-to-htmx-4.md');
+    expect(changelog).toContain('docs/migrating-to-htmx-4.md');
   });
 });

@@ -81,7 +81,7 @@ describe('hx-select inheritance on cached swaps', () => {
 
   it('honors an inherited ancestor hx-select', async () => {
     mount(
-      '<div hx-select="#content">' +
+      '<div hx-select="#content" hx-select:inherited="#content">' +
         '<div id="kid" hx-get="/inh" hx-trigger="go" hx-swr="60"></div>' +
         '</div>'
     );

@@ -4,11 +4,12 @@
 
 ## Purpose
 
-htmx-query is a small htmx 2 extension that adds opt-in stale-while-revalidate (SWR) HTML caching, retry with exponential backoff, in-flight GET deduplication, and optimistic template insertion. It is not a JSON data store or SPA state manager.
+htmx-query is a small htmx 2 and 4 extension that adds opt-in stale-while-revalidate (SWR) HTML caching, retry with exponential backoff, in-flight GET deduplication, and optimistic template insertion. It is not a JSON data store or SPA state manager.
 
 ## Runtime and distribution
 
-- Requires `htmx.org >=2.0.0 <3`.
+- Requires `htmx.org >=2.0.0 <3 || >=4.0.0-beta6 <5`. htmx 4 remains pinned
+  to the verified prerelease floor until 4.0.0 is stable.
 - `dist/htmx-query.min.js`: self-registering IIFE for script tags/CDNs.
 - `dist/htmx-query.js`: ESM. Import `register` and call `register(htmx)`.
 - `dist/htmx-query.cjs`: CommonJS.
@@ -18,10 +19,13 @@ htmx-query is a small htmx 2 extension that adds opt-in stale-while-revalidate (
 ## Installation
 
 ```html
-<script src="https://unpkg.com/htmx.org@2.0.10"></script>
+<script src="https://unpkg.com/htmx.org@4.0.0-beta6"></script>
 <script src="https://unpkg.com/htmx-query@0.2.0"></script>
-<body hx-ext="query">...</body>
+<body>...</body>
 ```
+
+htmx 4 extensions are global. htmx 2 requires `hx-ext="query"` on the body or
+the intended inherited subtree.
 
 ```js
 import htmx from 'htmx.org';
@@ -79,15 +83,22 @@ pre-1.0 minor version.
 
 ## Binding behavior and invariants
 
-- Read request attributes from `event.detail.requestConfig.elt`, not `event.detail.elt`; htmx changes `detail.elt` for swap events.
-- The `htmx:beforeRequest` order is cache serve, dedupe, then optimistic insertion. A handler return value of `false` cancels the request.
+- Feature modules consume the normalized event produced by
+  `src/htmx-adapter.js`; do not reach directly into htmx 2 `requestConfig`/XHR
+  or htmx 4 `detail.ctx`/Fetch shapes.
+- The before-request order is cache serve, dedupe, then optimistic insertion.
+  The adapter applies each major's cancellation semantics.
 - Cache only successful, non-empty GET responses from elements with `hx-swr`. Never cache error responses, `hx-swap-oob` payloads, or responses with `Cache-Control: no-store` or `private` (including parameterized directives). Skip responses whose `Vary` header includes a request header other than `HX-Request`, because that dimension is absent from the cache key.
 - `hx-swr-vary` may opt in non-sensitive request headers (for example `Accept-Language`) as key dimensions; it must list every non-HX-Request header named by the response `Vary`. `Cookie` and `Authorization` are never key dimensions.
 - `no-cache` validates before reuse, `max-age` caps `hx-swr`, and stale `must-revalidate` entries are not rendered before validation. `Age` and apparent `Date` age backdate cache entries; `Expires` provides an origin-relative TTL when `max-age` is absent. Browsers hide Set-Cookie response headers; personalized endpoints must explicitly send `private` or `no-store`.
 - A stale cached response with an `ETag` sends `If-None-Match`. On a `304`, retain the cached HTML and refresh its age; suppress htmx's otherwise-empty 304 swap. When no stale HTML was rendered before the validation (a `no-cache` entry, or a refused render beyond the stale-while-revalidate window), the `304` swaps the validated cached entry into the target instead.
 - `stale-while-revalidate=N` bounds stale rendering to N seconds past ORIGIN freshness (the longer of `hx-swr` and `max-age`/`Expires`); beyond it the revalidation proceeds without a stale swap. `stale-if-error=N` lets rendered stale HTML stand through a failed revalidation without an `hq:staleError` event. Absent directives leave stale serving unlimited.
 - A non-numeric `hx-swr` value degrades to `0` (always stale, always revalidate); it never disables cache serving.
-- Cached swaps preserve the requester's `hx-swap` and `hx-select` behavior, including htmx inheritance: closest-ancestor lookup, `data-hx-select`, `unset`, `hx-disinherit`, and `hx-inherit` under `disableInheritance`. Selector HTML is memoized once per cache entry and selector, with at most 16 selector variants per entry; variants beyond the byte budget are not retained.
+- Cached swaps preserve the requester's resolved `hx-swap` and `hx-select`
+  behavior. htmx 2 uses its implicit inheritance controls; htmx 4 uses explicit
+  `:inherited` attributes. Selector HTML is memoized once per cache entry and
+  selector, with at most 16 selector variants per entry; variants beyond the
+  byte budget are not retained.
 - For predictable first-hit latency, prefer caching a small server fragment directly; reserve `hx-select` for a small extraction from a larger response.
 - Dedupe only applies to cache-enabled GETs. A winner failure must release its in-flight key even when its requester has been removed from the document.
 - Retry state is scoped to requesting element + verb + final URL. A scheduled retry bypasses cache and dedupe. Preserve the original target captured before an error response can apply `HX-Retarget`.
@@ -98,6 +109,7 @@ pre-1.0 minor version.
 ## Source layout
 
 - `src/index.js`: htmx extension router and public registration.
+- `src/htmx-adapter.js`: dependency-free htmx 2 XHR / htmx 4 Fetch lifecycle normalization.
 - `src/cache.js`: bounded cache, invalidation, selected HTML variants.
 - `src/swr.js`: serve/store SWR behavior.
 - `src/dedupe.js`: in-flight request registry and waiter settlement.
@@ -138,6 +150,8 @@ npm run demo       # interactive demo at http://127.0.0.1:8484
 
 - `README.md`: package reference.
 - `docs/index.html`: landing page, installation, and examples.
+- `docs/migrating-to-htmx-4.md`: staged htmx 2-to-4 application migration,
+  verification, and rollback guide.
 - `llms.txt`: this AI-agent guide.
 - `llm.txt`: compatibility pointer to this guide.
 - `CHANGELOG.md` and `LICENSE`: release history and MIT license.

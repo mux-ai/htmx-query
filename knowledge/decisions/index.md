@@ -11,7 +11,7 @@
 * [Keep Cache Observability Configurable](/decisions/keep-cache-observability-configurable.md) - Cache lifecycle events are useful during diagnosis but can be filtered or disabled by applications with high-frequency cache traffic.
 * [Keep Cache Prefetch Explicit And Non-Rendering](/decisions/keep-cache-prefetch-explicit-and-non-rendering.md) - Prefetch is an optional cache warm-up, never an implicit navigation behavior or a source-element swap.
 * [Manual Cache Seeding](/decisions/manual-cache-seeding.md) - htmx.query.put(key, html, options) writes a rendered HTML fragment into the cache imperatively, closing the setQueryData-shaped gap without introducing a data store.
-* [Minimal Toolchain](/decisions/minimal-toolchain.md) - esbuild for builds (IIFE + ESM + CJS), vitest with happy-dom and sinon fake XHR for tests, size-limit budget 5 kB minified.
+* [Minimal Toolchain](/decisions/minimal-toolchain.md) - esbuild builds IIFE, ESM, and CJS artifacts; Vitest with jsdom and Playwright verify behavior without adding a compatibility framework.
 * [Namespace In Memory Cache](/decisions/namespace-in-memory-cache.md) - Applications can switch an explicit cache namespace when their active account, tenant, or data partition changes.
 * [Opt In Cross Tab Invalidation](/decisions/opt-in-cross-tab-invalidation.md) - htmx.query.configure({crossTab: true}) propagates invalidation to other tabs of the same origin and namespace over BroadcastChannel.
 * [Opt In Header Vary Cache Keys](/decisions/opt-in-header-vary-cache-keys.md) - Responses that vary by request headers are skipped by default; callers may explicitly include approved request headers in their cache key.
@@ -25,7 +25,7 @@
 * [Release Through Verified Automation](/decisions/release-through-verified-automation.md) - Publishing is a tag/release-driven GitHub workflow that repeats all quality gates before npm publish with provenance.
 * [Server Directives Override Client Freshness](/decisions/server-directives-override-client-freshness.md) - hx-swr supplies a client freshness preference, but HTTP directives that require validation place stricter bounds on reuse.
 * [Ship JavaScript With Type Declarations](/decisions/ship-javascript-with-type-declarations.md) - The runtime remains plain JavaScript while the package publishes a hand-maintained TypeScript declaration for editor and compiler support.
-* [Support htmx 2 Only](/decisions/support-htmx-2-only.md) - The extension targets htmx >=2.0.0 <3 and uses the public htmx.swap and htmx.ajax APIs, which do not exist or differ in htmx 1.x.
+* [Support htmx 2 And 4](/decisions/support-htmx-2-and-4.md) - The extension preserves htmx 2 compatibility while adding htmx 4 support through a small dependency-free lifecycle and transport adapter.
 * [Validate With Last Modified](/decisions/validate-with-last-modified.md) - Conditional revalidation falls back to If-Modified-Since when a response carried Last-Modified but no ETag.
 * [Verify In Real Browsers](/decisions/verify-in-real-browsers.md) - JSDOM verifies fast unit and integration behavior; Playwright verifies browser-only htmx, CSP, drag, and Clipboard behavior.
 * [Verify Public API Compatibility](/decisions/verify-public-api-compatibility.md) - The small public API is protected by declaration checks and a consumer contract test so refactors do not silently break CDN, ESM, CJS, or TypeScript users.

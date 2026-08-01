@@ -52,7 +52,7 @@ describe('demo server security boundary', () => {
 
   it('allows short-lived browser caching only for local static scripts', async () => {
     const page = await send({ path: '/' });
-    const script = await send({ path: '/htmx.js?v=2.0.10' });
+    const script = await send({ path: '/htmx.js?v=4.0.0-beta6' });
     expect(page.headers['cache-control']).toBe('no-store');
     expect(script.headers['cache-control']).toBe('public, max-age=3600');
   });
@@ -97,6 +97,27 @@ describe('demo server security boundary', () => {
     });
     expect(response.status).toBe(200);
     expect(response.body).toContain('referer-ok');
+  });
+
+  it('accepts explicit same-origin Fetch Metadata when Firefox sends Origin null', async () => {
+    const response = await send({
+      path: '/todos',
+      method: 'POST',
+      body: 'text=fetch-metadata-ok',
+      headers: { ...mutationHeaders(), Origin: 'null', 'Sec-Fetch-Site': 'same-origin' },
+    });
+    expect(response.status).toBe(200);
+    expect(response.body).toContain('fetch-metadata-ok');
+  });
+
+  it('rejects Origin null without same-origin provenance', async () => {
+    const response = await send({
+      path: '/todos',
+      method: 'POST',
+      body: 'text=fetch-metadata-blocked',
+      headers: { ...mutationHeaders(), Origin: 'null', 'Sec-Fetch-Site': 'cross-site' },
+    });
+    expect(response.status).toBe(403);
   });
 
   it('rejects an absent Origin with a cross-origin Referer', async () => {

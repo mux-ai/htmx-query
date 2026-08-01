@@ -86,7 +86,7 @@ const trustedMutation = (req) => {
   const origin = `http://${req.headers.host}`;
   const requestOrigin = req.headers.origin;
   let sameOrigin = requestOrigin === origin;
-  if (!requestOrigin) {
+  if (!requestOrigin || requestOrigin === 'null') {
     sameOrigin = req.headers['sec-fetch-site'] === 'same-origin';
     if (!sameOrigin && req.headers.referer) {
       try {

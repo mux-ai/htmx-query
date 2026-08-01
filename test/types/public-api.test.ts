@@ -3,6 +3,8 @@ import { register, type CacheEventDetail, type HtmxLike, type InvalidatedDetail,
 declare const htmx: HtmxLike;
 
 const query = register(htmx);
+register({ version: '2.0.10', defineExtension() {} });
+register({ version: '4.0.0-beta6', registerExtension() {} });
 query.setNamespace('tenant-a');
 query.invalidate('/todos', { mode: 'path' });
 const removed: number = query.invalidate('/todos');

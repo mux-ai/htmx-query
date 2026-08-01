@@ -6,4 +6,4 @@ description: Identity of a cache entry, defaulting to "verb:finalRequestPath"; a
 
 ## Definition
 
-Built from evt.detail.requestConfig.verb and evt.detail.pathInfo.finalRequestPath. An explicit hx-swr-key can replace that base. hx-swr-vary may append approved normalized request header values; Cookie and Authorization are forbidden dimensions. Prefix matching against keys is how invalidation selects entries to drop.
+Built from the compatibility adapter's normalized request method and final URL. An explicit hx-swr-key can replace that base. hx-swr-vary may append approved normalized request header values; Cookie and Authorization are forbidden dimensions. Prefix matching against keys is how invalidation selects entries to drop.

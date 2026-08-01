@@ -6,13 +6,15 @@
 [![license](https://img.shields.io/npm/l/htmx-query)](LICENSE)
 
 React Query-flavored **caching, stale-while-revalidate, retry, request dedupe
-and optimistic updates** for [htmx](https://htmx.org) — as a single ~5.8 kB
+and optimistic updates** for [htmx](https://htmx.org) — as a single ~7.1 kB
 extension. No build step, no client data store, no API changes: everything is
 opt-in `hx-*` attributes.
 
-Requires **htmx 2.x** (`htmx.org >= 2.0.0 < 3`).
+Supports **htmx 2.x** and **htmx 4.x**. While htmx 4 is prerelease, the
+verified range begins at `4.0.0-beta6`
+(`htmx.org >=2.0.0 <3 || >=4.0.0-beta6 <5`).
 
-[Landing page](https://mux-ai.github.io/htmx-query/) · [Production recipe](docs/production.md) · [AI agent guide](llms.txt) · [Interactive demo](examples/demo.html)
+[Landing page](https://mux-ai.github.io/htmx-query/) · [htmx 4 migration guide](docs/migrating-to-htmx-4.md) · [Production recipe](docs/production.md) · [AI agent guide](llms.txt) · [Interactive demo](examples/demo.html)
 
 ## Why use htmx-query?
 
@@ -34,7 +36,7 @@ without introducing a component framework or a second data model.
 - **Safer defaults:** POST retries are disabled, sensitive `Vary` headers are
   rejected, and `no-store`/`private` responses are not cached.
 - **Small integration surface:** CDN, ESM, and CommonJS builds, plus bundled
-  TypeScript declarations. The minified brotli bundle is kept below 7 kB.
+  TypeScript declarations. The minified brotli bundle is kept below 7.5 kB.
 - **Observable behavior:** cache events, invalidation events, hit-rate metrics,
   stale-error metrics, and a bounded `debug()` view are available when needed.
 
@@ -58,7 +60,8 @@ without introducing a component framework or a second data model.
   interactions may need a dedicated accessible drag-and-drop library.
 - Cached swaps bypass later htmx `transformResponse` processing. Do not cache
   elements that depend on another extension transforming every response.
-- The library targets **htmx 2.x only** (`>=2.0.0 <3`).
+- htmx 4 support currently follows its prerelease API and is pinned to the
+  tested beta floor until htmx 4.0.0 is stable.
 
 Choose htmx-query when the server owns rendered HTML and you need bounded,
 repeat-request performance. Choose a normalized client data library or SPA
@@ -68,13 +71,17 @@ storage, or rich client-side conflict handling.
 ## Install
 
 ```html
-<script src="https://unpkg.com/htmx.org@2.0.10"></script>
+<script src="https://unpkg.com/htmx.org@4.0.0-beta6"></script>
 <script src="https://unpkg.com/htmx-query@0.2.0"></script>
 
-<body hx-ext="query">
+<body>
   ...
 </body>
 ```
+
+htmx 4 activates registered extensions globally. For htmx 2, load
+`htmx.org@2.0.10` and add `hx-ext="query"` to the body or the subtree that
+uses htmx-query.
 
 For production, pin exact versions and add Subresource Integrity hashes
 (`integrity="sha384-..." crossorigin="anonymous"`) to both script tags —
@@ -99,8 +106,9 @@ published artifacts (`dist/*.sri`).
 
 ## Implementation guide
 
-1. Load htmx 2 and htmx-query, then add `hx-ext="query"` to the nearest
-   inherited container.
+1. Load a supported htmx version and htmx-query. htmx 4 needs no activation
+   attribute; htmx 2 requires `hx-ext="query"` on the nearest inherited
+   container.
 2. Add `hx-swr="TTL"` only to cacheable GET fragments. Start with a short TTL
    and confirm the response is public or otherwise safe to reuse.
 3. Add `hx-trigger="..., hq:invalidated from:body"` to lists that should
@@ -113,17 +121,22 @@ published artifacts (`dist/*.sri`).
 The smallest useful integration is:
 
 ```html
-<body hx-ext="query">
+<body>
   <ul hx-get="/todos"
       hx-trigger="load, hq:invalidated from:body"
       hx-swr="30"></ul>
 
-  <form hx-post="/todos" hx-on::after-request="htmx.query.invalidate('/todos')">
+  <form hx-post="/todos"
+        hx-on:htmx:after:request="if (event.detail.ctx.response.status < 400) htmx.query.invalidate('/todos')">
     <input name="text" required>
     <button>Add</button>
   </form>
 </body>
 ```
+
+The example uses the htmx 4 event name. With htmx 2, add `hx-ext="query"` and
+use `hx-on::after-request` with `event.detail.successful`, or invalidate through
+the version-neutral `HX-Cache-Invalidate` response header.
 
 For production hardening—SRI, cache headers, account namespaces, CSRF, and
 deployment checks—see [docs/production.md](docs/production.md).
@@ -340,13 +353,10 @@ without turning normal machine variance into failures.
 
 ## Browser support and verification
 
-The supported runtime is htmx 2.x in modern browsers. The repository runs
-the unit suite in jsdom plus real-browser checks in Chromium, Firefox, and
-WebKit. The WebKit suite keeps the browser-specific conditional-request and
-rendering checks enabled; one mutation-trigger assertion is isolated because
-WebKit's htmx `from:body` event bridge differs from Chromium and Firefox. The
-same server invalidation behavior is covered by the Chromium/Firefox suites
-and direct server tests.
+The supported runtimes are htmx 2.x and htmx 4.x in modern browsers. CI runs
+the unit suite plus real-browser checks in Chromium, Firefox, and WebKit
+against representative versions from both majors. htmx 4 remains pinned to
+the verified beta until its stable release.
 
 ## Publishing
 

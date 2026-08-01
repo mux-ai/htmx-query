@@ -1,4 +1,4 @@
-import htmx from 'htmx.org';
+import htmx from 'htmx.org/dist/htmx.esm.js';
 import { register } from '../src/index.js';
 
 globalThis.htmx = htmx;

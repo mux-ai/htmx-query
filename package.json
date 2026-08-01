@@ -1,7 +1,7 @@
 {
   "name": "htmx-query",
   "version": "0.2.0",
-  "description": "React Query-flavored caching, SWR, retry, dedupe and optimistic updates for htmx 2",
+  "description": "React Query-flavored caching, SWR, retry, dedupe and optimistic updates for htmx 2 and 4",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/mux-ai/htmx-query.git"
@@ -47,7 +47,7 @@
     "optimistic"
   ],
   "peerDependencies": {
-    "htmx.org": ">=2.0.0 <3"
+    "htmx.org": ">=2.0.0 <3 || >=4.0.0-beta6 <5"
   },
   "scripts": {
     "build": "node build.js",
@@ -68,7 +68,7 @@
   "size-limit": [
     {
       "path": "dist/htmx-query.min.js",
-      "limit": "7 kB"
+      "limit": "7.5 kB"
     }
   ],
   "devDependencies": {
@@ -76,7 +76,7 @@
     "@size-limit/preset-small-lib": "^12.1.0",
     "esbuild": "^0.28.1",
     "eslint": "^10.8.0",
-    "htmx.org": "^2.0.10",
+    "htmx.org": "4.0.0-beta6",
     "jsdom": "^29.1.1",
     "nise": "^6.1.5",
     "size-limit": "^12.1.0",

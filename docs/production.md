@@ -1,19 +1,28 @@
 # Production recipe
 
+Migrating an existing htmx 2 application? Follow the
+[htmx 4 migration guide](migrating-to-htmx-4.md) before applying this recipe.
+
 ## Install with pinned artifacts
 
 Use exact versions. The package's `unpkg` field resolves to the minified IIFE,
 so use the matching `dist/htmx-query.min.js.sri` value from that release:
 
 ```html
-<script src="https://unpkg.com/htmx.org@2.0.10"
-        integrity="sha384-REPLACE_WITH_HTMX_2_0_10_VALUE"
+<script src="https://unpkg.com/htmx.org@4.0.0-beta6"
+        integrity="sha384-REPLACE_WITH_HTMX_4_BETA6_VALUE"
         crossorigin="anonymous"></script>
 <script src="https://unpkg.com/htmx-query@0.2.0/dist/htmx-query.min.js"
         integrity="sha384-REPLACE_WITH_THE_MATCHING_RELEASE_VALUE"
         crossorigin="anonymous"></script>
-<body hx-ext="query">...</body>
+<body>...</body>
 ```
+
+htmx 4 extensions are global. For htmx 2, pin `htmx.org@2.0.10` and add
+`hx-ext="query"` to the body or intended subtree. Do not use a prerelease htmx
+version in production unless your deployment policy explicitly permits it;
+the htmx 4 range is pinned to the beta verified by this project until 4.0.0 is
+stable.
 
 Never copy an SRI value across versions or between the minified and readable
 IIFE files. The release notes and packaged `.sri` files are the source of

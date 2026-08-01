@@ -108,7 +108,9 @@ export interface QueryApi {
 }
 
 export interface HtmxLike {
-  defineExtension(name: string, extension: { onEvent(name: string, event: Event): boolean }): void;
+  version?: string;
+  defineExtension?(name: string, extension: { onEvent(name: string, event: Event): boolean }): void;
+  registerExtension?(name: string, extension: Record<string, unknown>): void;
   query?: QueryApi;
 }
 

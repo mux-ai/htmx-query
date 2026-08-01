@@ -48,3 +48,14 @@ if (!window.CSS) window.CSS = {};
 if (!window.CSS.escape) {
   window.CSS.escape = (value) => String(value).replace(/[^a-zA-Z0-9_-]/g, (c) => `\\${c}`);
 }
+
+// htmx 4 installs its indicator rules through constructable stylesheets.
+// jsdom exposes neither the document list nor a complete replaceSync API.
+if (!Array.isArray(document.adoptedStyleSheets)) document.adoptedStyleSheets = [];
+if (!window.CSSStyleSheet) {
+  window.CSSStyleSheet = class {
+    replaceSync() {}
+  };
+} else if (!window.CSSStyleSheet.prototype.replaceSync) {
+  window.CSSStyleSheet.prototype.replaceSync = function () {};
+}

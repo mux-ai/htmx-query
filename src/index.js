@@ -9,91 +9,90 @@ import { getNamespace, setNamespace, scopedKey } from './scope.js';
 import * as persist from './persist.js';
 import * as crosstab from './crosstab.js';
 import { setHtmx } from './utils.js';
+import { registerHtmxExtension } from './htmx-adapter.js';
+
+function beforeRequest(evt) {
+  retry.prepare(evt);
+  // Prefetches populate the cache but must never render into their source
+  // element. They also avoid an unnecessary cached swap.
+  if (prefetch.observePrefetch(evt)) {
+    if (dedupe.shouldCancel(evt)) return false;
+    dedupe.observeFailure(evt);
+    return true;
+  }
+  // Order is load-bearing: SWR may cancel, dedupe may cancel, and optimistic
+  // markup applies only to requests that actually fly.
+  if (swr.serveFromCache(evt)) return false;
+  if (dedupe.shouldCancel(evt)) return false;
+  dedupe.observeFailure(evt);
+  optimistic.apply(evt);
+  return true;
+}
+
+function beforeSwap(evt) {
+  if (prefetch.isPrefetch(evt)) {
+    swr.storeResponse(evt);
+    return false;
+  }
+  // htmx otherwise swaps the empty 304 body over the stale HTML we rendered
+  // before the request. Refresh the cache age and retain it.
+  // htmx 4's swap hook is asynchronous; refresh now, then render the retained
+  // entry from finally:request after the cancelled empty swap has unwound.
+  if (swr.refreshNotModified(evt, !evt.htmx4)) return false;
+  optimistic.revert(evt);
+  swr.storeResponse(evt);
+  // htmx 4 swaps 4xx/5xx responses by default. Preserve htmx-query's htmx 2
+  // behavior: error responses are neither cached nor swapped.
+  return evt.detail.isError !== true;
+}
+
+function afterSwap(evt) {
+  dedupe.settle(evt, true);
+}
+
+function afterRequest(evt) {
+  const notModified = swr.refreshNotModified(evt);
+  dedupe.settle(evt, evt.detail.successful === true || notModified);
+  prefetch.report(evt);
+  if (evt.detail.successful || notModified) {
+    invalidateFromResponse(evt);
+    swr.clearStaleState(evt);
+    retry.reset(evt);
+  }
+}
+
+function requestError(evt) {
+  prefetch.report(evt, 'error');
+  if (swr.refreshNotModified(evt)) {
+    dedupe.settle(evt, true);
+    swr.clearStaleState(evt);
+    retry.reset(evt);
+    return;
+  }
+  swr.reportStaleError(evt);
+  optimistic.revert(evt);
+  dedupe.settle(evt, false);
+  retry.maybeRetry(evt);
+}
+
+function requestAbort(evt) {
+  prefetch.report(evt, 'error');
+  swr.clearStaleState(evt);
+  optimistic.revert(evt);
+  dedupe.settle(evt, false);
+}
 
 export function register(htmx) {
   setHtmx(htmx);
   prefetch.installPrefetch(htmx);
 
-  htmx.defineExtension('query', {
-    onEvent(name, evt) {
-      switch (name) {
-        // Order is load-bearing: SWR may cancel, dedupe may cancel,
-        // optimistic applies only to requests that actually fly.
-        case 'htmx:beforeRequest':
-          retry.prepare(evt);
-          // Prefetches populate the cache but must never render into their
-          // source element. They also avoid an unnecessary cached swap.
-          if (prefetch.observePrefetch(evt)) {
-            if (dedupe.shouldCancel(evt)) return false;
-            dedupe.observeFailure(evt);
-            break;
-          }
-          if (swr.serveFromCache(evt)) return false;
-          if (dedupe.shouldCancel(evt)) return false;
-          dedupe.observeFailure(evt);
-          optimistic.apply(evt);
-          break;
-
-        case 'htmx:beforeSwap':
-          if (prefetch.isPrefetch(evt)) {
-            swr.storeResponse(evt);
-            evt.detail.shouldSwap = false;
-            break;
-          }
-          // htmx otherwise swaps the empty 304 body over the stale HTML we
-          // rendered in beforeRequest. Refresh the cache age and retain it.
-          if (swr.refreshNotModified(evt)) {
-            evt.detail.shouldSwap = false;
-            evt.detail.isError = false;
-            break;
-          }
-          optimistic.revert(evt);
-          swr.storeResponse(evt);
-          break;
-
-        case 'htmx:afterSwap':
-          dedupe.settle(evt, true);
-          break;
-
-        case 'htmx:afterRequest':
-          {
-            const notModified = swr.refreshNotModified(evt);
-            dedupe.settle(evt, evt.detail.successful === true || notModified);
-            prefetch.report(evt);
-            if (evt.detail.successful || notModified) {
-              invalidateFromResponse(evt);
-              swr.clearStaleState(evt);
-              retry.reset(evt);
-            }
-          }
-          break;
-
-        case 'htmx:responseError':
-        case 'htmx:sendError':
-        case 'htmx:timeout':
-          prefetch.report(evt, 'error');
-          if (swr.refreshNotModified(evt)) {
-            dedupe.settle(evt, true);
-            swr.clearStaleState(evt);
-            retry.reset(evt);
-            break;
-          }
-          swr.reportStaleError(evt);
-          optimistic.revert(evt);
-          dedupe.settle(evt, false);
-          retry.maybeRetry(evt);
-          break;
-
-        // Aborts are intentional (hx-sync etc.) — clean up, never retry.
-        case 'htmx:sendAbort':
-          prefetch.report(evt, 'error');
-          swr.clearStaleState(evt);
-          optimistic.revert(evt);
-          dedupe.settle(evt, false);
-          break;
-      }
-      return true;
-    },
+  registerHtmxExtension(htmx, {
+    beforeRequest,
+    beforeSwap,
+    afterSwap,
+    afterRequest,
+    error: requestError,
+    abort: requestAbort,
   });
 
   htmx.query = {

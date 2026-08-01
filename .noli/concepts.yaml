@@ -27,18 +27,25 @@ concepts:
           These are documented as out of scope rather than half-implemented.
 
   - type: Architecture Decision
-    title: Support htmx 2 Only
+    title: Support htmx 2 And 4
     description: >-
-      The extension targets htmx >=2.0.0 <3 and uses the public htmx.swap
-      and htmx.ajax APIs, which do not exist or differ in htmx 1.x.
+      The extension preserves htmx 2 compatibility while adding htmx 4
+      support through a small dependency-free lifecycle and transport adapter.
     sections:
       - heading: Decision
         content: >-
-          peerDependency is htmx.org >=2.0.0 <3. Cached content is swapped
-          with htmx.swap(target, html, {swapStyle}, {select, contextElement})
-          honoring the element's hx-swap first token (default innerHTML) and
-          hx-select. Retries are reissued with htmx.ajax using the verb, final
-          URL, and target captured before the original response can retarget it.
+          The peerDependency is htmx.org >=2.0.0 <3 || >=4.0.0-beta6 <5;
+          beta6 is the verified htmx 4 floor until 4.0.0 is stable. htmx 2
+          retains defineExtension/onEvent and XHR-shaped
+          lifecycle data; htmx 4 uses registerExtension hooks and Fetch-shaped
+          request contexts. Feature modules consume one normalized request
+          view. Cached swaps preserve hx-swap and hx-select through the public
+          version-appropriate htmx.swap API, including htmx 4's explicit
+          :inherited selection. Retries use htmx.ajax with the original verb,
+          final URL, source, and pre-retarget target.
+    relationships:
+      - predicate: enforced-by
+        to: Htmx Compatibility Adapter
 
   - type: Architecture Decision
     title: Attribute Driven API
@@ -58,14 +65,16 @@ concepts:
   - type: Architecture Decision
     title: Minimal Toolchain
     description: >-
-      esbuild for builds (IIFE + ESM + CJS), vitest with happy-dom and
-      sinon fake XHR for tests, size-limit budget 5 kB minified.
+      esbuild builds IIFE, ESM, and CJS artifacts; Vitest with jsdom and
+      Playwright verify behavior without adding a compatibility framework.
     sections:
       - heading: Decision
         content: >-
           No Babel, no webpack, no TypeScript compile step. Plain ES2018
           JavaScript. The IIFE build self-registers when window.htmx exists,
-          which is the primary distribution (script tag / CDN).
+          which is the primary distribution (script tag / CDN). Dual htmx
+          support is implemented inside the package with native platform APIs;
+          no runtime dependency or transport-mocking dependency is added.
 
   - type: Architecture Decision
     title: Keep Bounded Linear Invalidation
@@ -126,8 +135,8 @@ concepts:
       - heading: Decision
         content: >-
           Browser tests start and own an isolated local demo server in Chromium,
-          Firefox, and WebKit for every supported htmx 2.x CI matrix version. They
-          cover only workflows whose semantics depend on a real browser,
+          Firefox, and WebKit for representative supported htmx 2 and htmx 4
+          CI matrix versions. They cover only workflows whose semantics depend on a real browser,
           including conditional ETag revalidation and the empty-304 swap
           edge case, so the default test suite remains fast and deterministic.
     relationships:
@@ -310,12 +319,11 @@ concepts:
     sections:
       - heading: Definition
         content: >-
-          Built from evt.detail.requestConfig.verb and
-          evt.detail.pathInfo.finalRequestPath. An explicit hx-swr-key can
-          replace that base. hx-swr-vary may append approved normalized request
-          header values; Cookie and Authorization are forbidden dimensions.
-          Prefix matching against keys is how invalidation selects entries to
-          drop.
+          Built from the compatibility adapter's normalized request method and
+          final URL. An explicit hx-swr-key can replace that base. hx-swr-vary
+          may append approved normalized request header values; Cookie and
+          Authorization are forbidden dimensions. Prefix matching against keys
+          is how invalidation selects entries to drop.
 
   # ── Business rules ────────────────────────────────────────────────────
   - type: Business Rule
@@ -457,8 +465,8 @@ concepts:
         content: >-
           The demo binds to 127.0.0.1 unless a developer explicitly supplies
           HOST, escapes reflected todo content, caps request bodies, and
-          rejects cross-origin mutations. When a browser omits Origin for a
-          same-origin XHR, the boundary accepts only an explicit
+          rejects cross-origin mutations. When a browser omits Origin or sends
+          the opaque value null for a same-origin request, the boundary accepts only an explicit
           Sec-Fetch-Site same-origin signal or a same-origin Referer; absent
           provenance remains rejected. Its HTML responses carry a
           nonce-based Content Security Policy and baseline browser hardening
@@ -515,8 +523,8 @@ concepts:
         content: >-
           Waiters removed from the document before landing are skipped.
           Failure drops waiters silently: their next trigger (polling,
-          invalidation) recovers them. A winner also observes its XHR failure
-          directly, so removal from the document cannot prevent cleanup.
+          invalidation) recovers them. Transport-finalization hooks clean up a
+          winner even when its requesting element has left the document.
           Settling is idempotent because the in-flight registry entry is
           deleted on first settle.
     relationships:
@@ -527,14 +535,15 @@ concepts:
   - type: Application Component
     title: Extension Router
     description: >-
-      src/index.js — registers the "query" htmx extension; onEvent is a
-      thin switch that routes lifecycle events to feature modules.
+      src/index.js registers the "query" htmx extension and routes normalized
+      lifecycle events to feature modules.
     sections:
       - heading: Responsibility
         content: >-
-          Order on htmx:beforeRequest is load-bearing: SWR cache serve
+          Order before a request is load-bearing: SWR cache serve
           first (may cancel), dedupe second (may cancel), optimistic apply
-          last. Returning false from onEvent cancels the request. Modules
+          last. The compatibility adapter applies the version-specific
+          cancellation mechanism. Modules
           never call each other directly; they share only the cache store
           and DOM events. Also exposes register(htmx) for ESM users and
           self-registers when window.htmx exists.
@@ -547,6 +556,36 @@ concepts:
         to: Dedupe Module
       - predicate: uses
         to: Optimistic Module
+      - predicate: uses
+        to: Htmx Compatibility Adapter
+
+  - type: Application Component
+    title: Htmx Compatibility Adapter
+    description: >-
+      src/htmx-adapter.js normalizes htmx 2 XHR lifecycle events and htmx 4
+      Fetch request contexts without external dependencies.
+    sections:
+      - heading: Responsibility
+        content: >-
+          Detects the htmx major, registers the correct extension hooks,
+          exposes stable request method, URL, source, target, headers, status,
+          response text, success, and request identity fields, adds conditional
+          request headers, cancels requests or swaps, and calls the public
+          version-appropriate htmx.swap signature. Because htmx 4 reports both
+          timeouts and intentional aborts as AbortError, the adapter owns its
+          request timer so only timeouts are retryable. It also normalizes
+          process observation for dynamically swapped prefetch elements.
+    relationships:
+      - predicate: applies-to
+        to: Extension Router
+      - predicate: applies-to
+        to: SWR Module
+      - predicate: applies-to
+        to: Retry Module
+      - predicate: applies-to
+        to: Dedupe Module
+      - predicate: applies-to
+        to: Prefetch Module
 
   - type: Application Component
     title: Cache Store
@@ -566,6 +605,10 @@ concepts:
           clear operations so applications can observe behavior without
           reading internal maps. htmx.query.configure can keep all events,
           disable them, or filter them by action without changing stats.
+          Each entry precomputes its resource path at set time so
+          invalidation avoids reparsing keys, and a monotonic revision
+          counter increments on every mutation so mirrors can detect an
+          unchanged cache without comparing contents.
     relationships:
       - predicate: depends-on
         to: Cache Entry
@@ -589,7 +632,7 @@ concepts:
     title: Retry Module
     description: >-
           src/retry.js — schedules htmx.ajax reissues with exponential backoff
-          after responseError, sendError, or timeout.
+          after normalized HTTP, network, or timeout failures.
     sections:
       - heading: Responsibility
         content: >-
@@ -597,10 +640,13 @@ concepts:
           request URL. The original request target is captured before a
           response can apply HX-Retarget. A scheduled retry bypasses cache
           serving and deduplication, guaranteeing it receives its configured
-          attempts. reset() clears only the successful request's state.
+          attempts. reset() clears only the successful request's state and
+          cancels that request's still-pending retry timer, which is
+          tracked per element and key so a success never leaves a moot
+          reissue scheduled.
     relationships:
       - predicate: follows
-        to: Support htmx 2 Only
+        to: Support htmx 2 And 4
 
   - type: Application Component
     title: Dedupe Module
@@ -716,6 +762,36 @@ concepts:
 
   # ── Workflows ─────────────────────────────────────────────────────────
   - type: Workflow
+    title: Migrate From htmx 2 To 4
+    description: >-
+      Applications upgrade htmx-query independently from htmx, then move to
+      htmx 4 through a reversible compatibility checklist.
+    sections:
+      - heading: Steps
+        content: >-
+          1. Upgrade to the dual-runtime htmx-query release while retaining
+          htmx 2 and hx-ext="query"; verify existing behavior. 2. Pin the
+          verified htmx 4 prerelease and keep htmx-query loaded after htmx.
+          3. Remove hx-ext="query", unless temporarily using htmx's separate
+          htmx-2-compat extension. 4. Rename application-owned lifecycle
+          listeners to htmx 4's colon-separated events and read Fetch response
+          data through detail.ctx. 5. Mark inherited htmx attributes with
+          :inherited, audit timeout, error-swap, hx-trigger queue, and OOB
+          ordering changes, then verify caching, 304 revalidation, dedupe,
+          retries, optimistic rollback, and invalidation in real browsers.
+          Rollback requires repinning htmx 2, restoring hx-ext and old
+          application event listeners, and converting :inherited markup back
+          to normal htmx 2 attribute names. The new htmx-query release itself
+          does not need to be downgraded because it continues supporting htmx 2.
+    relationships:
+      - predicate: follows
+        to: Support htmx 2 And 4
+      - predicate: uses
+        to: Htmx Compatibility Adapter
+      - predicate: applies-to
+        to: Publish Human And Agent Documentation
+
+  - type: Workflow
     title: Serve And Revalidate
     description: >-
       GET with hx-swr fires; cached copy swaps in immediately; request is
@@ -758,10 +834,11 @@ concepts:
     sections:
       - heading: Steps
         content: >-
-          1. SWR finds a stale entry and sets If-None-Match before htmx sends
-          the XHR. 2. A 200 replaces HTML and ETag normally. 3. A 304 keeps
-          the existing HTML, refreshes its timestamp, and settles dedupe
-          waiters from that retained entry.
+          1. SWR finds a stale entry and adds If-None-Match to the normalized
+          outgoing request headers before htmx sends XHR or Fetch. 2. A 200
+          replaces HTML and ETag normally. 3. A 304 keeps the existing HTML,
+          refreshes its timestamp, and settles dedupe waiters from that
+          retained entry.
     relationships:
       - predicate: uses
         to: SWR Module
@@ -1057,8 +1134,8 @@ concepts:
           installPrefetch registers the trigger listeners once; prefetch
           requests are issued with htmx.ajax under a private
           htmx-query:prefetch triggering event so the router can recognize
-          and suppress their swap. observePrefetch tags the request config,
-          isPrefetch identifies it later, and report emits a single
+          and suppress their swap. observePrefetch tags the normalized request
+          identity, isPrefetch identifies it later, and report emits a single
           hq:prefetch success, error, or skip event per request. Guards:
           same-origin only, hx-swr and hx-get required, Save-Data
           respected, at most one attempt per element.
@@ -1128,7 +1205,10 @@ concepts:
           localStorage, so entries die with the tab and are never shared
           across tabs or windows. Enabling it hydrates immediately from the
           record stored under the active namespace, then writes back on
-          pagehide and on visibility change to hidden. Only html, time,
+          pagehide and on visibility change to hidden. A write-back is
+          skipped when the cache revision is unchanged since the last
+          successful write to the same key, so repeated tab switches do
+          not re-serialize an unchanged cache. Only html, time,
           etag, lastModified, and cacheControl are serialized; hx-select
           variants are recomputable and are dropped. Hydration replays
           entries through the ordinary bounded cache.set path, so current

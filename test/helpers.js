@@ -1,11 +1,57 @@
 import nise from 'nise';
 
+function fakeFetchNetwork() {
+  const requests = [];
+  const originalFetch = window.fetch;
+  window.fetch = (url, options = {}) => new Promise((resolve, reject) => {
+    const request = {
+      url: String(url),
+      method: options.method,
+      requestHeaders: { ...(options.headers || {}) },
+      requestBody: options.body,
+      respond(status, headers, body) {
+        const entries = Object.entries(headers || {});
+        resolve({
+          status,
+          headers: {
+            get(name) {
+              const found = entries.find(([key]) => key.toLowerCase() === String(name).toLowerCase());
+              return found ? String(found[1]) : null;
+            },
+            [Symbol.iterator]() {
+              return entries[Symbol.iterator]();
+            },
+          },
+          text: async () => body,
+        });
+      },
+      error() {
+        reject(new TypeError('Network request failed'));
+      },
+    };
+    requests.push(request);
+    options.signal?.addEventListener('abort', () => {
+      reject(new window.DOMException('The operation was aborted', 'AbortError'));
+    }, { once: true });
+  });
+  return {
+    requests,
+    respond(index, status, body, headers = {}) {
+      requests[index].respond(status, { 'Content-Type': 'text/html', ...headers }, body);
+    },
+    restore() {
+      window.fetch = originalFetch;
+    },
+  };
+}
+
 /**
- * Replace XMLHttpRequest with nise's fake; returns request log + helpers.
- * Only SENT requests are logged: htmx constructs and opens the XHR before
- * htmx:beforeRequest fires, so cancelled requests still hit onCreate.
+ * Replace htmx's active transport with a fake; returns request log + helpers.
+ * htmx 2 uses the existing nise XHR fake; htmx 4 uses the dependency-free
+ * Promise/Fetch fake above.
  */
 export function fakeNetwork() {
+  if (String(globalThis.htmx?.version || '').startsWith('4.')) return fakeFetchNetwork();
   const xhr = nise.fakeXhr.useFakeXMLHttpRequest();
   const requests = [];
   xhr.onCreate = (request) => {
@@ -29,7 +75,8 @@ export function fakeNetwork() {
 
 /** Mount markup under a body scoped to the query extension and process it. */
 export function mount(html) {
-  document.body.setAttribute('hx-ext', 'query');
+  if (String(htmx.version || '').startsWith('4.')) document.body.removeAttribute('hx-ext');
+  else document.body.setAttribute('hx-ext', 'query');
   document.body.innerHTML = html;
   htmx.process(document.body);
   return document.body.firstElementChild;
