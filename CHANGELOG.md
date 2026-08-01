@@ -2,7 +2,7 @@
 
 All notable changes to this project are documented here.
 
-## Unreleased
+## 0.3.0
 
 - Added dependency-free dual-runtime support for htmx 2 and htmx 4. The
   adapter normalizes htmx 2 XHR lifecycle data and htmx 4 Fetch request
