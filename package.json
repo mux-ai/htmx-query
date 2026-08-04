@@ -77,7 +77,7 @@
     "esbuild": "^0.28.1",
     "eslint": "^10.8.0",
     "htmx.org": "4.0.0-beta6",
-    "jsdom": "^29.1.1",
+    "jsdom": "^30.0.1",
     "nise": "^6.1.5",
     "size-limit": "^12.1.0",
     "typescript": "^7.0.2",
