@@ -5,6 +5,9 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    # Keep package.json in sync with lockfile bumps so the lockfile-review
+    # guard (which rejects lockfile-only diffs) accepts Dependabot PRs.
+    versioning-strategy: increase
   - package-ecosystem: github-actions
     directory: "/"
     schedule:
