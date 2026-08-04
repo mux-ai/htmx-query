@@ -942,8 +942,12 @@ concepts:
       - heading: Decision
         content: >-
           CodeQL actions are pinned to reviewed commit SHAs and Dependabot
-          tracks their updates. The workflow keeps JavaScript analysis on push,
-          pull request, and weekly schedule triggers.
+          tracks their updates. Dependabot groups github/codeql-action bumps
+          into one pull request because init and analyze must run the same
+          version; split bumps fail the analyze post-action with a
+          configuration/runtime version mismatch. The workflow keeps
+          JavaScript analysis on push, pull request, and weekly schedule
+          triggers.
     relationships:
       - predicate: applies-to
         to: Automate Dependency And Code Security Review
