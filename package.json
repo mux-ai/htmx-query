@@ -83,5 +83,12 @@
     "typescript": "^7.0.2",
     "vitest": "^4.1.10"
   },
-  "packageManager": "pnpm@9.15.9"
+  "packageManager": "pnpm@9.15.9",
+  "pnpm": {
+    "auditConfig": {
+      "ignoreCves": [
+        "CVE-2026-112366"
+      ]
+    }
+  }
 }

@@ -14,3 +14,12 @@ when an account changes without a full navigation.
 Browsers do not expose `Set-Cookie` response headers to JavaScript. Mark
 personalized responses with `Cache-Control: private` or `no-store`; that is
 the enforceable signal htmx-query uses to avoid retaining them.
+
+## Audit exceptions
+
+- CVE-2026-112366 (picomatch <= 4.0.7, ReDoS via repeated extglobs) is
+  ignored in `pnpm.auditConfig.ignoreCves`: no patched version exists
+  upstream, and picomatch is reached only through dev tooling (vitest,
+  vite, size-limit) that matches glob patterns from this repository's own
+  configuration, never untrusted input. Remove the exception as soon as a
+  picomatch release above 4.0.7 ships.
